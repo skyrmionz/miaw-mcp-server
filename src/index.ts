@@ -886,24 +886,69 @@ class MIAWMCPServer {
         name: 'MIAW MCP Server',
         description: 'MCP Server for Salesforce Enhanced Chat (MIAW) API',
         version: '1.0.0',
-        mcp_endpoint: '/sse',
+        mcp_endpoint: '/mcp',
         health_check: '/health',
         documentation: 'https://github.com/your-repo/miaw-mcp-server'
       });
     });
 
-    // MCP SSE endpoint - each connection gets its own server instance
-    app.get('/sse', async (req, res) => {
-      console.error('New SSE connection established');
+    // MCP endpoint - supports GET, POST, DELETE (ChatGPT compatible)
+    const handleMcpConnection = async (req: any, res: any) => {
+      console.error('New MCP connection established via', req.method);
       
       try {
+        // Check for required Accept headers
+        const accept = req.headers.accept || '';
+        if (!accept.includes('application/json') || !accept.includes('text/event-stream')) {
+          return res.status(406).json({
+            jsonrpc: '2.0',
+            id: 'server-error',
+            error: {
+              code: -32600,
+              message: 'Not Acceptable: Client must accept both application/json and text/event-stream'
+            }
+          });
+        }
+
         // Create a new server instance for this connection
+        const serverInstance = this.createServerInstance();
+        const transport = new SSEServerTransport('/mcp', res);
+        
+        await serverInstance.connect(transport);
+        
+        // Handle connection close
+        req.on('close', () => {
+          console.error('MCP connection closed');
+        });
+      } catch (error) {
+        console.error('Error establishing MCP connection:', error);
+        if (!res.headersSent) {
+          res.status(500).json({ 
+            jsonrpc: '2.0',
+            id: 'server-error',
+            error: {
+              code: -32603,
+              message: 'Internal error: Failed to establish connection'
+            }
+          });
+        }
+      }
+    };
+
+    app.get('/mcp', handleMcpConnection);
+    app.post('/mcp', handleMcpConnection);
+    app.delete('/mcp', handleMcpConnection);
+
+    // Legacy SSE endpoint (kept for backwards compatibility)
+    app.get('/sse', async (req, res) => {
+      console.error('New SSE connection established via GET (legacy)');
+      
+      try {
         const serverInstance = this.createServerInstance();
         const transport = new SSEServerTransport('/message', res);
         
         await serverInstance.connect(transport);
         
-        // Handle connection close
         req.on('close', () => {
           console.error('SSE connection closed');
         });
@@ -919,7 +964,8 @@ class MIAWMCPServer {
     app.listen(port, () => {
       console.error(`MIAW MCP Server running on HTTP port ${port}`);
       console.error(`Health check: http://localhost:${port}/health`);
-      console.error(`MCP endpoint: http://localhost:${port}/sse`);
+      console.error(`MCP endpoint: http://localhost:${port}/mcp (POST)`);
+      console.error(`Legacy SSE endpoint: http://localhost:${port}/sse (GET)`);
     });
   }
 
