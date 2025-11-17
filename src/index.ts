@@ -872,8 +872,17 @@ class MIAWMCPServer {
   async startHttp(port: number = 3000) {
     const app = express();
     
-    // Enable JSON body parsing
-    app.use(express.json());
+    // Enable CORS for all routes
+    app.use((_req, res, next) => {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS, HEAD');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+      next();
+    });
+    
+    // Enable JSON body parsing with increased limit
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Health check endpoint
     app.get('/health', (_req, res) => {
@@ -894,31 +903,51 @@ class MIAWMCPServer {
 
     // MCP endpoint - supports GET, POST, DELETE (ChatGPT compatible)
     const handleMcpConnection = async (req: any, res: any) => {
-      console.error('New MCP connection established via', req.method);
+      const method = req.method;
+      const accept = req.headers.accept || '';
+      
+      console.error(`MCP ${method} request from ${req.ip || 'unknown'}`);
+      console.error(`Accept header: ${accept}`);
+      console.error(`User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
       
       try {
-        // Check for required Accept headers
-        const accept = req.headers.accept || '';
-        if (!accept.includes('application/json') || !accept.includes('text/event-stream')) {
-          return res.status(406).json({
-            jsonrpc: '2.0',
-            id: 'server-error',
-            error: {
-              code: -32600,
-              message: 'Not Acceptable: Client must accept both application/json and text/event-stream'
-            }
-          });
+        // For HEAD requests, just return 200
+        if (method === 'HEAD') {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+          return res.status(200).end();
         }
+
+        // For OPTIONS requests (CORS preflight)
+        if (method === 'OPTIONS') {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
+          res.setHeader('Access-Control-Max-Age', '86400');
+          return res.status(204).end();
+        }
+
+        // Set CORS headers for all responses
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
 
         // Create a new server instance for this connection
         const serverInstance = this.createServerInstance();
         const transport = new SSEServerTransport('/mcp', res);
         
+        console.error('Connecting MCP server instance...');
         await serverInstance.connect(transport);
+        console.error('MCP server instance connected successfully');
         
         // Handle connection close
         req.on('close', () => {
-          console.error('MCP connection closed');
+          console.error('MCP connection closed by client');
+        });
+
+        req.on('error', (err: any) => {
+          console.error('MCP connection error:', err);
         });
       } catch (error) {
         console.error('Error establishing MCP connection:', error);
@@ -928,13 +957,17 @@ class MIAWMCPServer {
             id: 'server-error',
             error: {
               code: -32603,
-              message: 'Internal error: Failed to establish connection'
+              message: 'Internal error: Failed to establish connection',
+              data: error instanceof Error ? error.message : String(error)
             }
           });
         }
       }
     };
 
+    // Support all HTTP methods for MCP endpoint
+    app.options('/mcp', handleMcpConnection);
+    app.head('/mcp', handleMcpConnection);
     app.get('/mcp', handleMcpConnection);
     app.post('/mcp', handleMcpConnection);
     app.delete('/mcp', handleMcpConnection);
