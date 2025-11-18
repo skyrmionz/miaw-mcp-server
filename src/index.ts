@@ -899,10 +899,25 @@ class MIAWMCPServer {
           args.conversationId,
           args.continuationToken
         );
-        // Add polling instruction - tell ChatGPT to keep checking for new messages
+        
+        // Check the most recent message to determine if we should keep polling
+        const entries: any[] = entriesResult.entries || [];
+        const mostRecentEntry: any = entries.length > 0 ? entries[entries.length - 1] : null;
+        const mostRecentSender: string = mostRecentEntry?.senderDisplayName || '';
+        const isAutomatedProcess = mostRecentSender.includes('Automated Process');
+        const hasAgentMessage = entries.some((e: any) => e.senderDisplayName?.includes('Agent'));
+        
+        // Add polling instruction - tell ChatGPT explicitly whether to continue
         result = {
           ...entriesResult,
-          _nextAction: 'After displaying any new agent messages, wait 3 seconds and call list_conversation_entries again to check for more. Keep polling until the user sends a new message. Track message IDs to avoid duplicates.'
+          _shouldContinuePolling: isAutomatedProcess,
+          _mostRecentSender: mostRecentSender,
+          _hasAgentMessage: hasAgentMessage,
+          _nextAction: isAutomatedProcess 
+            ? 'MOST RECENT MESSAGE IS FROM AUTOMATED PROCESS. Wait 3 seconds and call list_conversation_entries AGAIN. Do NOT display anything yet. Keep polling until you see a message from an Agent.'
+            : hasAgentMessage
+            ? 'Found agent message! Display it verbatim as your own response. Then keep polling every 3 seconds for more agent messages until user responds.'
+            : 'No messages yet. Wait 3 seconds and call list_conversation_entries again.'
         };
         break;
 

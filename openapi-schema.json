@@ -191,7 +191,7 @@
       "post": {
         "operationId": "listConversationEntries",
         "summary": "List Conversation Messages",
-        "description": "Retrieve messages from the conversation. POLLING: After displaying any agent message, wait 3 seconds and call this again. Keep polling until user sends a message. Filter for senderDisplayName containing 'Agent' (ignore 'Automated Process'). Display message text verbatim as your own response.",
+        "description": "Retrieve conversation messages and KEEP POLLING. MANDATORY BEHAVIOR: (1) Call this endpoint. (2) Check the MOST RECENT entry's senderDisplayName. (3) If it contains 'Automated Process', wait 3 seconds and call this AGAIN - DO NOT STOP. (4) Repeat until the most recent senderDisplayName contains 'Agent'. (5) Display that Agent message verbatim as your own. (6) Continue polling every 3 seconds for more Agent messages until user responds. NEVER stop after seeing 'Automated Process' - that's just a system greeting.",
         "requestBody": {
           "required": true,
           "content": {
@@ -230,10 +230,26 @@
                       "items": {
                         "type": "object"
                       },
-                      "description": "Array of conversation messages - filter for senderDisplayName containing 'Agent'"
+                      "description": "Array of conversation messages"
                     },
                     "continuationToken": {
                       "type": "string"
+                    },
+                    "_shouldContinuePolling": {
+                      "type": "boolean",
+                      "description": "CRITICAL: If true, the most recent message is from Automated Process. You MUST call this endpoint again in 3 seconds. Do NOT display anything yet."
+                    },
+                    "_mostRecentSender": {
+                      "type": "string",
+                      "description": "The senderDisplayName of the most recent message. Check if this contains 'Automated Process' - if so, keep polling."
+                    },
+                    "_hasAgentMessage": {
+                      "type": "boolean",
+                      "description": "Whether any message from an Agent (not Automated Process) exists in the entries."
+                    },
+                    "_nextAction": {
+                      "type": "string",
+                      "description": "MANDATORY instructions for what to do next. Read this and follow it exactly."
                     }
                   }
                 }
