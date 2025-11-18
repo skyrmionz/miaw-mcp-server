@@ -1229,7 +1229,14 @@ class MIAWMCPServer {
         orgId: process.env.MIAW_ORG_ID!,
         esDeveloperName: process.env.MIAW_ES_DEVELOPER_NAME!
       });
-      return await this.handleToolCall(client, toolName, args);
+      const mcpResult = await this.handleToolCall(client, toolName, args);
+      
+      // MCP returns result wrapped in content array with JSON string
+      // Extract and parse for REST API
+      if (mcpResult?.content?.[0]?.text) {
+        return JSON.parse(mcpResult.content[0].text);
+      }
+      return mcpResult;
     };
 
     // REST API endpoints - just thin wrappers around MCP tools
