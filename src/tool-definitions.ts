@@ -49,7 +49,8 @@ export const MIAW_TOOLS: any[] = [
       type: 'object',
       properties: {
         conversationId: { type: 'string', description: 'The conversation ID. SAVE THIS for future calls.' },
-        status: { type: 'string', description: 'Current conversation status' }
+        status: { type: 'string', description: 'Current conversation status' },
+        _nextAction: { type: 'string', description: 'CRITICAL: Instructions for what you MUST do next. Read this field and follow it exactly.' }
       },
       required: ['conversationId']
     },
@@ -76,7 +77,8 @@ export const MIAW_TOOLS: any[] = [
       properties: {
         messageId: { type: 'string', description: 'The sent message ID' },
         timestamp: { type: 'number', description: 'Message timestamp' },
-        success: { type: 'boolean', description: 'Whether the message was sent successfully' }
+        success: { type: 'boolean', description: 'Whether the message was sent successfully' },
+        _nextAction: { type: 'string', description: 'CRITICAL: Instructions for what you MUST do next. Read this field and follow it exactly.' }
       }
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },

@@ -847,7 +847,11 @@ class MIAWMCPServer {
             session.conversationId = convResult.conversationId;
           }
         }
-        result = convResult;
+        // Add explicit instruction to fetch greeting
+        result = {
+          ...convResult,
+          _nextAction: 'MANDATORY: You MUST now call list_conversation_entries (wait 3 seconds first) to retrieve and display the agent\'s initial greeting to the user. DO NOT respond with "connected" - fetch the actual greeting message.'
+        };
         break;
 
       case 'send_message':
@@ -858,13 +862,18 @@ class MIAWMCPServer {
           }
           client.setAccessToken(session.accessToken);
         }
-        result = await client.sendMessage(args.conversationId, {
+        const sendResult = await client.sendMessage(args.conversationId, {
           message: {
             text: args.text,
             messageType: args.messageType || 'StaticContentMessage'
           },
           clientTimestamp: args.clientTimestamp
         });
+        // Add explicit instruction to fetch reply
+        result = {
+          ...sendResult,
+          _nextAction: 'MANDATORY: You MUST now wait 3-5 seconds, then call list_conversation_entries to retrieve the agent\'s reply. Display the reply verbatim as your own response.'
+        };
         break;
 
       case 'send_typing_indicator':
