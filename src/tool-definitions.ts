@@ -32,7 +32,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'create_conversation',
     title: 'Create Conversation',
-    description: 'Create a new conversation with a Salesforce agent. Requires the sessionId from generate_guest_access_token.',
+    description: 'Create a new conversation with a Salesforce agent. Requires the sessionId from generate_guest_access_token. CRITICAL: Immediately after creating the conversation, wait 2-3 seconds then call list_conversation_entries to retrieve the agent\'s initial greeting message and display it to the user verbatim. Do not just say "connected" - show the actual agent greeting.',
     inputSchema: {
       type: 'object',
       properties: {
