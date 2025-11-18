@@ -747,6 +747,9 @@ class MIAWMCPServer {
         break;
 
       case 'create_conversation':
+        if (args.accessToken) {
+          client.setAccessToken(args.accessToken);
+        }
         result = await client.createConversation({
           routableType: args.routableType,
           routingAttributes: args.routingAttributes,
@@ -757,6 +760,9 @@ class MIAWMCPServer {
         break;
 
       case 'send_message':
+        if (args.accessToken) {
+          client.setAccessToken(args.accessToken);
+        }
         result = await client.sendMessage(args.conversationId, {
           message: {
             text: args.text,
@@ -772,6 +778,9 @@ class MIAWMCPServer {
         break;
 
       case 'list_conversation_entries':
+        if (args.accessToken) {
+          client.setAccessToken(args.accessToken);
+        }
         result = await client.listConversationEntries(
           args.conversationId,
           args.continuationToken
@@ -804,6 +813,9 @@ class MIAWMCPServer {
         break;
 
       case 'close_conversation':
+        if (args.accessToken) {
+          client.setAccessToken(args.accessToken);
+        }
         await client.closeConversation(args.conversationId);
         result = { success: true, message: 'Conversation closed' };
         break;
