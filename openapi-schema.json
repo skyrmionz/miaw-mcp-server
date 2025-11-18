@@ -1,0 +1,330 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Salesforce MIAW Messaging API",
+    "description": "API for interacting with Salesforce Enhanced Chat (MIAW) to enable messaging sessions with Salesforce agents (AI and human).",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://miaw-mcp-server-6df009bc852c.herokuapp.com"
+    }
+  ],
+  "paths": {
+    "/api/generate-session": {
+      "post": {
+        "operationId": "generateSession",
+        "summary": "Generate Guest Session",
+        "description": "Create a new guest session for messaging. Returns a sessionId that must be used in all subsequent calls.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "appName": {
+                    "type": "string",
+                    "description": "Name of the application (optional)"
+                  },
+                  "clientVersion": {
+                    "type": "string",
+                    "description": "Version of the client (optional)"
+                  },
+                  "captchaToken": {
+                    "type": "string",
+                    "description": "CAPTCHA token if required (optional)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string",
+                      "description": "Session identifier - save this for all subsequent calls"
+                    },
+                    "expiresIn": {
+                      "type": "number",
+                      "description": "Session expiration in seconds"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/create-conversation": {
+      "post": {
+        "operationId": "createConversation",
+        "summary": "Create Conversation",
+        "description": "Create a new conversation with a Salesforce agent. MANDATORY: After calling this, wait 3 seconds then call listConversationEntries to get the initial greeting, then keep polling for more messages.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId"],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Session ID from generateSession (REQUIRED)"
+                  },
+                  "routableType": {
+                    "type": "string",
+                    "description": "Type of routing (e.g., Queue, Agent)"
+                  },
+                  "routingAttributes": {
+                    "type": "object",
+                    "description": "Routing attributes"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversationId": {
+                      "type": "string",
+                      "description": "The conversation ID - save this for future calls"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/send-message": {
+      "post": {
+        "operationId": "sendMessage",
+        "summary": "Send Message",
+        "description": "Send a text message in an active conversation. MANDATORY: After calling this, wait 3-5 seconds then call listConversationEntries to get the agent's reply, then keep polling for more messages.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId", "conversationId", "text"],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Session ID from generateSession (REQUIRED)"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "The ID of the conversation"
+                  },
+                  "text": {
+                    "type": "string",
+                    "description": "The message text to send"
+                  },
+                  "messageType": {
+                    "type": "string",
+                    "description": "Message type (default: StaticContentMessage)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messageId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/list-conversation-entries": {
+      "post": {
+        "operationId": "listConversationEntries",
+        "summary": "List Conversation Messages",
+        "description": "Retrieve messages from the conversation. POLLING: After displaying any agent message, wait 3 seconds and call this again. Keep polling until user sends a message. Filter for senderDisplayName containing 'Agent' (ignore 'Automated Process'). Display message text verbatim as your own response.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId", "conversationId"],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Session ID from generateSession (REQUIRED)"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "The ID of the conversation"
+                  },
+                  "continuationToken": {
+                    "type": "string",
+                    "description": "Optional pagination token"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation entries retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      },
+                      "description": "Array of conversation messages - filter for senderDisplayName containing 'Agent'"
+                    },
+                    "continuationToken": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/get-conversation-status": {
+      "post": {
+        "operationId": "getConversationStatus",
+        "summary": "Get Conversation Status",
+        "description": "Check if conversation is queued, connected to agent, or waiting.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId", "conversationId"],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Session ID from generateSession (REQUIRED)"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "The ID of the conversation"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "estimatedWaitTime": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/close-conversation": {
+      "post": {
+        "operationId": "closeConversation",
+        "summary": "Close Conversation",
+        "description": "Close an active conversation. This ends the chat session.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["sessionId", "conversationId"],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Session ID from generateSession (REQUIRED)"
+                  },
+                  "conversationId": {
+                    "type": "string",
+                    "description": "The ID of the conversation to close"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Conversation closed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
