@@ -223,9 +223,26 @@ class MIAWClient {
     conversationId: string,
     request: types.SendMessageRequest
   ): Promise<types.SendMessageResponse> {
+    // Format according to MIAW API spec
+    const formattedRequest: any = {
+      message: {
+        messageType: request.message.messageType || 'StaticContentMessage',
+        staticContent: {
+          text: request.message.text || '',
+          formatType: request.message.format || ''
+        }
+      },
+      esDeveloperName: this.config.esDeveloperName
+    };
+    
+    // Add optional fields if provided
+    if (request.message.staticContentId) {
+      formattedRequest.message.id = request.message.staticContentId;
+    }
+    
     const response = await this.axiosInstance.post<types.SendMessageResponse>(
-      `/conversations/${conversationId}/messages`,
-      request
+      `/conversation/${conversationId}/message`,
+      formattedRequest
     );
     return response.data;
   }

@@ -68,7 +68,7 @@ export const MIAW_TOOLS: any[] = [
         text: { type: 'string', description: 'The message text to send' },
         messageType: { type: 'string', description: 'Message type (default: "StaticContentMessage")' }
       },
-      required: ['accessToken', 'conversationId', 'text'],
+      required: ['sessionId', 'conversationId', 'text'],
       additionalProperties: false
     },
     outputSchema: {
@@ -93,7 +93,7 @@ export const MIAW_TOOLS: any[] = [
         conversationId: { type: 'string', description: 'The ID of the conversation' },
         continuationToken: { type: 'string', description: 'Optional pagination token' }
       },
-      required: ['accessToken', 'conversationId'],
+      required: ['sessionId', 'conversationId'],
       additionalProperties: false
     },
     outputSchema: {
@@ -117,7 +117,7 @@ export const MIAW_TOOLS: any[] = [
         sessionId: { type: 'string', description: 'Session ID from generate_guest_access_token (REQUIRED)' },
         conversationId: { type: 'string', description: 'The ID of the conversation' }
       },
-      required: ['accessToken', 'conversationId'],
+      required: ['sessionId', 'conversationId'],
       additionalProperties: false
     },
     outputSchema: {
@@ -141,7 +141,7 @@ export const MIAW_TOOLS: any[] = [
         sessionId: { type: 'string', description: 'Session ID from generate_guest_access_token (REQUIRED)' },
         conversationId: { type: 'string', description: 'The ID of the conversation to close' }
       },
-      required: ['accessToken', 'conversationId'],
+      required: ['sessionId', 'conversationId'],
       additionalProperties: false
     },
     outputSchema: {
