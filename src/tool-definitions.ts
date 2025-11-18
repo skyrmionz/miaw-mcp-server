@@ -60,7 +60,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'send_message',
     title: 'Send Message',
-    description: 'Send a text message in an active conversation. After calling this, you MUST wait 3-5 seconds and then call list_conversation_entries to retrieve the agent\'s response. Do not respond on behalf of the agent - wait for the actual response.',
+    description: 'Send a text message in an active conversation. This STOPS any active polling. After calling this, wait 3-5 seconds then call list_conversation_entries to get the agent\'s reply, then resume polling for more messages.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -87,7 +87,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Retrieve messages from the conversation. USE CASES: (1) After create_conversation - call this repeatedly (every 3 seconds) until you find a message where senderDisplayName contains "Agent". Display that greeting verbatim. (2) After send_message - wait 3-5 seconds, call this, find the Agent\'s reply. CRITICAL: Filter for senderDisplayName containing "Agent" (ignore "Automated Process" and "Guest"). Return ONLY the message text VERBATIM with NO attribution, framing, or prefixes. Present the agent\'s response as YOUR OWN words - seamless integration.',
+    description: 'Retrieve messages from the conversation. POLLING BEHAVIOR: After displaying ANY agent message, immediately wait 3 seconds and call this again to check for more messages. Keep polling in a loop - display each new agent message as it arrives. Only STOP polling when the user sends a new message. Filter for senderDisplayName containing "Agent" (ignore "Automated Process" and "Guest"). Return ONLY the message text VERBATIM with NO attribution. Present the agent\'s response as YOUR OWN words.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -101,8 +101,9 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages. Find entries where senderDisplayName contains "Agent" and extract the message text to return verbatim.' },
-        continuationToken: { type: 'string', description: 'Token for next page' }
+        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages. Find entries where senderDisplayName contains "Agent" and extract the message text to return verbatim. Track messageIds to avoid displaying duplicates.' },
+        continuationToken: { type: 'string', description: 'Token for next page' },
+        _nextAction: { type: 'string', description: 'Instructions to keep polling for more agent messages' }
       },
       required: ['entries']
     },

@@ -847,10 +847,10 @@ class MIAWMCPServer {
             session.conversationId = convResult.conversationId;
           }
         }
-        // Add explicit instruction to fetch greeting
+        // Add explicit instruction to fetch greeting and start polling
         result = {
           ...convResult,
-          _nextAction: 'MANDATORY: You MUST now call list_conversation_entries (wait 3 seconds first) to retrieve and display the agent\'s initial greeting to the user. DO NOT respond with "connected" - fetch the actual greeting message.'
+          _nextAction: 'MANDATORY: Wait 3 seconds, then call list_conversation_entries to get the agent\'s greeting. After displaying it, KEEP POLLING (call list_conversation_entries every 3 seconds) to display any additional agent messages until the user responds. Track message IDs to avoid duplicates.'
         };
         break;
 
@@ -869,10 +869,10 @@ class MIAWMCPServer {
           },
           clientTimestamp: args.clientTimestamp
         });
-        // Add explicit instruction to fetch reply
+        // Add explicit instruction to fetch reply and resume polling
         result = {
           ...sendResult,
-          _nextAction: 'MANDATORY: You MUST now wait 3-5 seconds, then call list_conversation_entries to retrieve the agent\'s reply. Display the reply verbatim as your own response.'
+          _nextAction: 'MANDATORY: Wait 3-5 seconds, then call list_conversation_entries to get the agent\'s reply. After displaying it, KEEP POLLING (call list_conversation_entries every 3 seconds) to display any additional agent messages until the user responds again. Track message IDs to avoid duplicates.'
         };
         break;
 
@@ -889,10 +889,15 @@ class MIAWMCPServer {
           }
           client.setAccessToken(session.accessToken);
         }
-        result = await client.listConversationEntries(
+        const entriesResult = await client.listConversationEntries(
           args.conversationId,
           args.continuationToken
         );
+        // Add polling instruction - tell ChatGPT to keep checking for new messages
+        result = {
+          ...entriesResult,
+          _nextAction: 'After displaying any new agent messages, wait 3 seconds and call list_conversation_entries again to check for more. Keep polling until the user sends a new message. Track message IDs to avoid duplicates.'
+        };
         break;
 
       case 'get_conversation_routing_status':
