@@ -158,13 +158,49 @@ class MIAWClient {
    * Create a new conversation
    */
   async createConversation(
-    request: types.CreateConversationRequest
+    request: types.CreateConversationRequest,
+    conversationId?: string
   ): Promise<types.CreateConversationResponse> {
+    // Generate a UUID for the conversation if not provided
+    const convId = conversationId || generateUUID();
+    
+    // Format request according to MIAW API spec
+    // Note: properties are flat, not wrapped in 'routable' object
+    const formattedRequest: any = {
+      conversationId: convId,
+      esDeveloperName: this.config.esDeveloperName
+    };
+    
+    if (request.routingAttributes) {
+      formattedRequest.routingAttributes = request.routingAttributes;
+    }
+    
+    if (request.capabilities) {
+      formattedRequest.capabilities = request.capabilities;
+    }
+    
+    if (request.conversationContextId) {
+      formattedRequest.conversationContextId = request.conversationContextId;
+    }
+    
+    if (request.prechatDetails) {
+      formattedRequest.prechatDetails = request.prechatDetails;
+    }
+    
+    // Note: routableType is not directly sent in the request based on the API example
+    
+    console.error('Creating conversation with ID:', convId);
+    
     const response = await this.axiosInstance.post<types.CreateConversationResponse>(
-      '/conversations',
-      request
+      '/conversation',
+      formattedRequest
     );
-    return response.data;
+    
+    // Return the conversation ID we generated
+    return {
+      ...response.data,
+      conversationId: convId
+    };
   }
 
   /**
@@ -312,6 +348,17 @@ const sessions = new Map<string, { accessToken: string; conversationId?: string 
  */
 function generateSessionId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+/**
+ * Generate a UUID v4 for conversation IDs
+ */
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 /**
