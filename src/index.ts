@@ -76,11 +76,18 @@ class MIAWClient {
       captchaToken
     };
 
-    // For Web platform, omit deviceId (API requirement)
-    // For other platforms (Mobile, iOS, Android), include it
+    // For Web platform, NEVER include deviceId (API requirement)
+    // The API explicitly rejects requests with deviceId for Web platform
     if (this.config.platform !== 'Web' && deviceId) {
       request.deviceId = deviceId;
     }
+
+    console.error('Guest token request:', {
+      platform: this.config.platform,
+      hasDeviceId: !!deviceId,
+      willIncludeDeviceId: this.config.platform !== 'Web' && !!deviceId,
+      requestKeys: Object.keys(request)
+    });
 
     const response = await this.axiosInstance.post<types.AccessTokenResponse>(
       '/authorization/unauthenticated/access-token',
