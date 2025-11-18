@@ -59,7 +59,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'send_message',
     title: 'Send Message',
-    description: 'Send a text message in an active conversation. Use this to communicate with the Salesforce agent.',
+    description: 'Send a text message in an active conversation. After calling this, you MUST wait 3-5 seconds and then call list_conversation_entries to retrieve the agent\'s response. Do not respond on behalf of the agent - wait for the actual response.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -85,7 +85,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'List all messages in a conversation. Use this to read messages from the Salesforce agent.',
+    description: 'Retrieve messages from the conversation. IMPORTANT: After sending a message, you MUST wait 3-5 seconds, then call this tool to get the agent\'s response. Filter the response to find messages where senderDisplayName is NOT "Automated Process" (ignore automated greetings). Return the agent\'s actual message text VERBATIM to the user - do not add commentary or rephrase. Act as a messenger, not an interpreter.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -99,7 +99,7 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages' },
+        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages. Filter for senderDisplayName != "Automated Process"' },
         continuationToken: { type: 'string', description: 'Token for next page' }
       },
       required: ['entries']
@@ -110,7 +110,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'get_conversation_routing_status',
     title: 'Get Conversation Status',
-    description: 'Check if conversation is queued, connected to agent, or waiting. Use this to know when an agent joins.',
+    description: 'Check if conversation is queued, connected to agent, or waiting. Use this after creating a conversation to verify an agent has been assigned before sending your first message.',
     inputSchema: {
       type: 'object',
       properties: {
