@@ -71,10 +71,16 @@ class MIAWClient {
       orgId: this.config.orgId,
       esDeveloperName: this.config.esDeveloperName,
       capabilitiesVersion: this.config.capabilitiesVersion!,
-      platform: this.config.platform!,
-      context,
-      captchaToken
+      platform: this.config.platform!
     };
+
+    // NOTE: Salesforce MIAW API does NOT accept 'context' field
+    // appName and clientVersion are for client-side tracking only, not sent to API
+    
+    // Only include captchaToken if provided
+    if (captchaToken) {
+      request.captchaToken = captchaToken;
+    }
 
     // For Web platform, NEVER include deviceId (API requirement)
     // The API explicitly rejects requests with deviceId for Web platform
