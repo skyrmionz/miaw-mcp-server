@@ -1087,6 +1087,141 @@ class MIAWMCPServer {
       res.sendFile('openapi-schema.json', { root: process.cwd() });
     });
 
+    // Privacy policy endpoint
+    app.get('/privacy-policy', (_req, res) => {
+      res.type('html').send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - MIAW MCP Server</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; color: #333; }
+        h1 { color: #0066cc; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+        h2 { color: #0066cc; margin-top: 30px; }
+        h3 { color: #555; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        pre { background: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .highlight { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+        .updated { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Privacy Policy for MIAW MCP Server</h1>
+    <p class="updated"><strong>Last Updated:</strong> January 2025</p>
+
+    <h2>Overview</h2>
+    <p>This service provides an integration between ChatGPT and Salesforce Enhanced Chat (MIAW) API to facilitate messaging sessions with Salesforce agents.</p>
+
+    <h2>Information We Collect</h2>
+    <h3>Session Data</h3>
+    <ul>
+        <li><strong>Session IDs:</strong> Temporary identifiers generated to manage your messaging session</li>
+        <li><strong>Conversation IDs:</strong> Identifiers for your chat conversations with Salesforce agents</li>
+        <li><strong>Messages:</strong> Text messages you send and receive during conversations</li>
+    </ul>
+
+    <h3>Technical Data</h3>
+    <ul>
+        <li><strong>API Requests:</strong> Standard HTTP request data (timestamps, endpoints accessed)</li>
+        <li><strong>Server Logs:</strong> Basic request logging for debugging and monitoring</li>
+    </ul>
+
+    <h2>How We Use Your Information</h2>
+    <ul>
+        <li><strong>Session Management:</strong> To maintain your connection and conversation state</li>
+        <li><strong>Message Delivery:</strong> To relay messages between you and Salesforce agents</li>
+        <li><strong>Service Operation:</strong> To ensure the API functions correctly</li>
+    </ul>
+
+    <h2>Data Storage and Retention</h2>
+    <div class="highlight">
+        <strong>Important:</strong> All data is stored <strong>in-memory only</strong> and is <strong>never persisted to disk</strong>.
+    </div>
+    <ul>
+        <li><strong>Temporary Storage:</strong> All session data (session IDs, access tokens, conversation IDs) is stored in-memory only</li>
+        <li><strong>Automatic Deletion:</strong> All data is automatically deleted when the session expires, the server restarts, or the conversation is closed</li>
+        <li><strong>No Persistent Storage:</strong> We do NOT store any data in databases or permanent storage</li>
+        <li><strong>Message Content:</strong> Messages are transmitted through our server but are NOT stored permanently</li>
+    </ul>
+
+    <h2>Data Sharing</h2>
+    <ul>
+        <li><strong>Salesforce:</strong> Messages and session data are transmitted to Salesforce MIAW API to facilitate agent conversations</li>
+        <li><strong>No Third Parties:</strong> We do not share your data with any other third parties</li>
+        <li><strong>No Analytics:</strong> We do not use analytics or tracking services</li>
+    </ul>
+
+    <h2>Security</h2>
+    <ul>
+        <li><strong>HTTPS:</strong> All connections use HTTPS encryption</li>
+        <li><strong>Token Management:</strong> Access tokens are managed server-side and never exposed to the client</li>
+        <li><strong>Server-Side Sessions:</strong> Sensitive authentication data is stored server-side, not client-side</li>
+    </ul>
+
+    <h2>Your Rights</h2>
+    <ul>
+        <li><strong>Access:</strong> You can view your messages during active conversations</li>
+        <li><strong>Deletion:</strong> Close your conversation to remove session data</li>
+        <li><strong>Control:</strong> You control what information you share during conversations</li>
+    </ul>
+
+    <h2>Data Controller</h2>
+    <p>This service acts as a <strong>data processor</strong> on behalf of:</p>
+    <ul>
+        <li><strong>Your Organization:</strong> The Salesforce organization you're connecting to</li>
+        <li><strong>Salesforce:</strong> The ultimate data controller for MIAW conversations</li>
+    </ul>
+
+    <h2>Cookies</h2>
+    <p>This service does not use cookies.</p>
+
+    <h2>Children's Privacy</h2>
+    <p>This service is not intended for use by children under 13 years of age.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>We may update this privacy policy from time to time. Updates will be reflected in the "Last Updated" date.</p>
+
+    <h2>Contact</h2>
+    <p>For questions about this privacy policy or data handling practices, please contact your Salesforce administrator.</p>
+
+    <h2>Compliance</h2>
+    <p>This service processes data in accordance with:</p>
+    <ul>
+        <li>Salesforce's MIAW API Terms of Service</li>
+        <li>Your organization's Salesforce agreement</li>
+        <li>Applicable data protection laws</li>
+    </ul>
+
+    <h2>Technical Details</h2>
+    <h3>What We Store (Temporarily, In-Memory Only):</h3>
+    <pre><code>{
+  "sessionId": "random-generated-id",
+  "accessToken": "jwt-token-from-salesforce",
+  "conversationId": "uuid-for-conversation"
+}</code></pre>
+
+    <h3>What We Don't Store:</h3>
+    <ul>
+        <li>Message history beyond active transmission</li>
+        <li>User profiles or personal information</li>
+        <li>Persistent conversation logs</li>
+        <li>Analytics or usage data</li>
+    </ul>
+
+    <h3>Data Flow:</h3>
+    <p>You → ChatGPT/Custom GPT → This Server → Salesforce MIAW API → This Server → ChatGPT/Custom GPT → You</p>
+    <p>All data transmission is encrypted via HTTPS.</p>
+
+    <div class="highlight">
+        <strong>Important:</strong> This server is a technical integration layer. The actual data storage and retention policies are governed by your Salesforce organization's settings and Salesforce's terms of service.
+    </div>
+</body>
+</html>
+      `);
+    });
+
     // Store active API sessions (separate from MCP sessions)
     interface APISession {
       accessToken: string;

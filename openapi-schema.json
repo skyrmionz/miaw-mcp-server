@@ -3,7 +3,15 @@
   "info": {
     "title": "Salesforce MIAW Messaging API",
     "description": "API for interacting with Salesforce Enhanced Chat (MIAW) to enable messaging sessions with Salesforce agents (AI and human).",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "url": "https://miaw-mcp-server-6df009bc852c.herokuapp.com"
+    },
+    "x-legal": {
+      "name": "Privacy Policy",
+      "url": "https://miaw-mcp-server-6df009bc852c.herokuapp.com/privacy-policy"
+    }
   },
   "servers": [
     {
