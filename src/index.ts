@@ -63,19 +63,24 @@ class MIAWClient {
    * Generate access token for unauthenticated (guest) user
    */
   async generateGuestAccessToken(
-    deviceId: string,
+    deviceId?: string,
     context?: { appName?: string; clientVersion?: string },
     captchaToken?: string
   ): Promise<types.AccessTokenResponse> {
-    const request: types.AccessTokenRequest = {
+    const request: any = {
       orgId: this.config.orgId,
       esDeveloperName: this.config.esDeveloperName,
       capabilitiesVersion: this.config.capabilitiesVersion!,
       platform: this.config.platform!,
-      deviceId,
       context,
       captchaToken
     };
+
+    // For Web platform, omit deviceId (API requirement)
+    // For other platforms (Mobile, iOS, Android), include it
+    if (this.config.platform !== 'Web' && deviceId) {
+      request.deviceId = deviceId;
+    }
 
     const response = await this.axiosInstance.post<types.AccessTokenResponse>(
       '/authorization/unauthenticated/access-token',
