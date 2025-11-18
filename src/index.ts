@@ -1063,15 +1063,49 @@ class MIAWMCPServer {
 
       } catch (error) {
         console.error('Error handling JSON-RPC request:', error);
-        res.status(200).json({
-          jsonrpc: '2.0',
-          error: {
-            code: -32603,
-            message: 'Internal error',
-            data: error instanceof Error ? error.message : String(error)
-          },
-          id: req.body?.id || null
-        });
+        
+        // Handle Axios errors (API errors)
+        if (axios.isAxiosError(error)) {
+          const axiosError = error as AxiosError<types.ErrorResponse>;
+          const apiError = axiosError.response?.data?.error;
+          
+          console.error('MIAW API Error:', {
+            status: axiosError.response?.status,
+            message: apiError?.message || axiosError.message,
+            code: apiError?.code,
+            details: apiError?.details
+          });
+          
+          res.status(200).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32603,
+              message: apiError?.message || axiosError.message || 'API request failed',
+              data: {
+                httpStatus: axiosError.response?.status,
+                errorCode: apiError?.code,
+                errorMessage: apiError?.message,
+                details: apiError?.details,
+                url: axiosError.config?.url
+              }
+            },
+            id: req.body?.id || null
+          });
+        } else {
+          // Handle other errors
+          res.status(200).json({
+            jsonrpc: '2.0',
+            error: {
+              code: -32603,
+              message: error instanceof Error ? error.message : 'Internal error',
+              data: {
+                errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+                errorMessage: error instanceof Error ? error.message : String(error)
+              }
+            },
+            id: req.body?.id || null
+          });
+        }
       }
     });
 
