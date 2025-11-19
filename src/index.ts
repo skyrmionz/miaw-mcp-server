@@ -898,7 +898,7 @@ class MIAWMCPServer {
         
         // Internal polling: Keep checking until we get an Agent message (or timeout after 15s)
         const maxWaitTime = 15000; // 15 seconds
-        const pollInterval = 3000; // 3 seconds
+        const pollInterval = 1000; // 1 second (faster response!)
         const startTime = Date.now();
         let entriesResult: any;
         let hasAgentMessage = false;
