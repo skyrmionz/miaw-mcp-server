@@ -933,6 +933,33 @@ class MIAWMCPServer {
           console.error('Timeout reached. No agent message found after 15s.');
         }
         
+        // If we found an agent message, wait a bit longer to catch potential transfers/handoffs
+        if (hasAgentMessage) {
+          console.error('Agent message found. Checking for immediate follow-ups (transfers/handoffs)...');
+          const followUpWaitTime = 3000; // Wait 3 more seconds
+          const followUpStartTime = Date.now();
+          let lastEntryCount = entriesResult.entries?.length || 0;
+          
+          while (Date.now() - followUpStartTime < followUpWaitTime) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            const followUpResult = await client.listConversationEntries(
+              args.conversationId,
+              args.continuationToken
+            );
+            
+            const currentEntryCount = followUpResult.entries?.length || 0;
+            if (currentEntryCount > lastEntryCount) {
+              console.error(`New message detected during follow-up check! (${lastEntryCount} → ${currentEntryCount})`);
+              entriesResult = followUpResult; // Use the newer result
+              lastEntryCount = currentEntryCount;
+              // Keep waiting to see if more messages come (like transfer greeting)
+            }
+          }
+          
+          console.error('Follow-up check complete.');
+        }
+        
         // Check the most recent message
         const entries: any[] = entriesResult.entries || [];
         const mostRecentEntry: any = entries.length > 0 ? entries[entries.length - 1] : null;
@@ -946,7 +973,7 @@ class MIAWMCPServer {
           _mostRecentSender: mostRecentSender,
           _hasAgentMessage: hasAgentMessage,
           _nextAction: hasAgentMessage
-            ? 'Found agent message! Display it verbatim as your own response. Then keep calling this endpoint every 3 seconds for more agent messages until user responds.'
+            ? 'Found agent message! Display ALL new agent messages verbatim (there may be multiple if transfer occurred). Then keep calling this endpoint every 3 seconds for more agent messages until user responds.'
             : isAutomatedProcess
             ? 'Only automated messages so far. Call this endpoint again to check for agent reply.'
             : 'No messages yet. Wait and try again.'
