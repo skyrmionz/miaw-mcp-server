@@ -1373,8 +1373,8 @@ class MIAWMCPServer {
       }
     });
 
-    // Store active MCP sessions
-    const sessions = new Map<string, Server>();
+    // Store active MCP server instances (renamed to avoid shadowing global sessions map)
+    const mcpSessions = new Map<string, Server>();
 
     // MCP endpoint - GET establishes SSE connection
     app.get('/mcp', async (req, res) => {
@@ -1387,7 +1387,7 @@ class MIAWMCPServer {
         
         // Create a new server instance for this session
         const serverInstance = this.createServerInstance();
-        sessions.set(sessionId, serverInstance);
+        mcpSessions.set(sessionId, serverInstance);
         
         // Create SSE transport with message endpoint
         const transport = new SSEServerTransport(`/mcp`, res);
@@ -1399,12 +1399,12 @@ class MIAWMCPServer {
         // Clean up on close
         req.on('close', () => {
           console.error(`Session ${sessionId}: Connection closed by client`);
-          sessions.delete(sessionId);
+          mcpSessions.delete(sessionId);
         });
 
         req.on('error', (err: any) => {
           console.error(`Session ${sessionId}: Connection error:`, err);
-          sessions.delete(sessionId);
+          mcpSessions.delete(sessionId);
         });
       } catch (error) {
         console.error('Error establishing SSE connection:', error);
