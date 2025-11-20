@@ -32,7 +32,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'create_conversation',
     title: 'Create Conversation',
-    description: 'Create a new conversation with a Salesforce agent. MANDATORY NEXT STEP: After this call succeeds, you MUST immediately call list_conversation_entries (wait 3 seconds, call it, wait 3 more seconds if no agent message, call again) until you receive the agent\'s initial greeting. DO NOT tell the user "you\'re connected" or "an agent will join" - that is WRONG. You MUST fetch and display the actual agent greeting message verbatim before responding to the user. This is not optional.',
+    description: 'Create a new conversation with a Salesforce agent. After creating, call list_conversation_entries to get the agent\'s greeting and display it verbatim as your own words.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -49,8 +49,7 @@ export const MIAW_TOOLS: any[] = [
       type: 'object',
       properties: {
         conversationId: { type: 'string', description: 'The conversation ID. SAVE THIS for future calls.' },
-        status: { type: 'string', description: 'Current conversation status' },
-        _nextAction: { type: 'string', description: 'CRITICAL: Instructions for what you MUST do next. Read this field and follow it exactly.' }
+        status: { type: 'string', description: 'Current conversation status' }
       },
       required: ['conversationId']
     },
@@ -60,7 +59,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'send_message',
     title: 'Send Message',
-    description: 'Send a text message in an active conversation. This STOPS any active polling. After calling this, wait 3-5 seconds then call list_conversation_entries to get the agent\'s reply, then resume polling for more messages.',
+    description: 'Send a text message in an active conversation. After sending, call list_conversation_entries to get the agent\'s reply.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -77,8 +76,7 @@ export const MIAW_TOOLS: any[] = [
       properties: {
         messageId: { type: 'string', description: 'The sent message ID' },
         timestamp: { type: 'number', description: 'Message timestamp' },
-        success: { type: 'boolean', description: 'Whether the message was sent successfully' },
-        _nextAction: { type: 'string', description: 'CRITICAL: Instructions for what you MUST do next. Read this field and follow it exactly.' }
+        success: { type: 'boolean', description: 'Whether the message was sent successfully' }
       }
     },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -87,7 +85,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Retrieve messages from agents (human or AI bot). Server filters out ONLY "Automated Process" system messages. Returns bot greetings, agent messages, everything except automated system messages. After displaying messages, immediately call this again to keep listening. NEVER stop polling until user responds. Present all messages verbatim as YOUR OWN words with NO attribution.',
+    description: 'Retrieve messages from the conversation. Server internally polls until the most recent message is NOT from "Automated Process", then returns it. Display the most recent message verbatim as your own words with no attribution.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -101,12 +99,9 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        conversationEntries: { type: 'array', items: { type: 'object' }, description: 'Array containing ONLY real agent messages (Automated Process filtered out). Extract text from staticContent.text and display verbatim.' },
-        _agentMessageCount: { type: 'number', description: 'Number of agent messages returned' },
-        _shouldContinuePolling: { type: 'boolean', description: 'Always true - keep polling for more messages' },
-        _nextAction: { type: 'string', description: 'CRITICAL: Instructions to keep polling. Read and follow exactly.' }
+        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages. Find the most recent message and display its text verbatim.' }
       },
-      required: ['conversationEntries']
+      required: ['entries']
     },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     _meta: {}

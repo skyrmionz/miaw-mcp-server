@@ -81,7 +81,7 @@
       "post": {
         "operationId": "createConversation",
         "summary": "Create Conversation",
-        "description": "Create a new conversation with a Salesforce agent. MANDATORY: After calling this, wait 3 seconds then call listConversationEntries to get the initial greeting, then keep polling for more messages.",
+        "description": "Create a new conversation with a Salesforce agent. After creating, call listConversationEntries to get the agent's greeting.",
         "requestBody": {
           "required": true,
           "content": {
@@ -135,7 +135,7 @@
       "post": {
         "operationId": "sendMessage",
         "summary": "Send Message",
-        "description": "Send a text message in an active conversation. MANDATORY: After calling this, wait 3-5 seconds then call listConversationEntries to get the agent's reply, then keep polling for more messages.",
+        "description": "Send a text message in an active conversation. After sending, call listConversationEntries to get the agent's reply.",
         "requestBody": {
           "required": true,
           "content": {
@@ -192,7 +192,7 @@
       "post": {
         "operationId": "listConversationEntries",
         "summary": "List Conversation Messages",
-        "description": "Get messages from agents (human or AI bot). Filters out ONLY 'Automated Process' system messages. ALWAYS keep polling every 3s after displaying. Never stop until user responds. Display all messages verbatim as your own words.",
+        "description": "Get messages from the conversation. Server internally polls until most recent message is NOT from 'Automated Process'. Display the most recent message verbatim as your own words.",
         "requestBody": {
           "required": true,
           "content": {
@@ -231,30 +231,7 @@
                       "items": {
                         "type": "object"
                       },
-                      "description": "Array of conversation messages"
-                    },
-                    "continuationToken": {
-                      "type": "string"
-                    },
-                    "_shouldContinuePolling": {
-                      "type": "boolean",
-                      "description": "ALWAYS true. Keep calling this endpoint every 3 seconds to listen for more agent messages."
-                    },
-                    "_mostRecentSender": {
-                      "type": "string",
-                      "description": "The senderDisplayName of the most recent message by timestamp. Ignore if 'Automated Process'."
-                    },
-                    "_hasAgentMessage": {
-                      "type": "boolean",
-                      "description": "True when server found messages from agents or bots (not Automated Process)."
-                    },
-                    "_agentMessageCount": {
-                      "type": "number",
-                      "description": "Number of messages returned (bot greetings, agent messages, etc - excludes Automated Process)."
-                    },
-                    "_nextAction": {
-                      "type": "string",
-                      "description": "MANDATORY instructions for what to do next. Read this and follow it exactly."
+                      "description": "Array of conversation messages. Display the most recent message's text."
                     }
                   }
                 }

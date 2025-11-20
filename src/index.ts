@@ -941,14 +941,8 @@ class MIAWMCPServer {
           console.error('Timeout (25s). Most recent still Automated Process or no messages.');
         }
         
-        // Return ALL entries (ChatGPT will see the full conversation)
-        result = {
-          ...entriesResult,
-          _shouldContinuePolling: true, // Always keep listening
-          _nextAction: mostRecentIsNotAutomated
-            ? 'Display the most recent message verbatim as your own words. Then IMMEDIATELY call this endpoint again to listen for more. NEVER stop until user sends a message.'
-            : 'No new message yet. IMMEDIATELY call this endpoint again. Do NOT tell user anything - keep polling silently.'
-        };
+        // Return the full conversation entries
+        result = entriesResult;
         break;
 
       case 'get_conversation_routing_status':
