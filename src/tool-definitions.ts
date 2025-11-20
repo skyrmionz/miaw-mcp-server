@@ -85,7 +85,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Retrieve messages from the conversation. Server polls until most recent message is NOT from "Automated Process". Returns messages from BOTH chatbots AND live agents - display ALL of them. CRITICAL: Display ONLY the message text VERBATIM with NO attribution. Do NOT add "bot said", "agent replied", or ANY other words. Present as if YOU are speaking. Exception: On transfer (ParticipantChanged), announce "Transferring you to [name]" then their greeting.',
+    description: 'Get messages from chatbots or live agents. CRITICAL RULE: Extract ONLY the message text and reply with EXACTLY that text - NOTHING MORE. Do NOT add "Selena replied:", "The agent said:", greetings, commentary, or instructions. WRONG: "Selena replied: Hello" ❌ RIGHT: "Hello" ✅ Present the message AS IF it is YOUR OWN response. You ARE the messenger speaking their words directly. Exception: On transfer, say "Transferring you to [name]" then their greeting only.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -99,7 +99,7 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        entries: { type: 'array', items: { type: 'object' }, description: 'Array of messages from chatbots AND live agents (excludes only "Automated Process"). Find the most recent message and display its text verbatim. Bot greetings, bot responses, and agent messages are all valid - display them all.' }
+        entries: { type: 'array', items: { type: 'object' }, description: 'Messages from bots/agents. Find most recent message, extract ONLY its text, reply with EXACTLY that text and NOTHING ELSE. No "X said:", no commentary, no instructions. Just the message text alone.' }
       },
       required: ['entries']
     },

@@ -192,7 +192,7 @@
       "post": {
         "operationId": "listConversationEntries",
         "summary": "List Conversation Messages",
-        "description": "Get messages from BOTH chatbots AND live agents. Server filters out ONLY 'Automated Process' system messages. Display ALL messages from bots or agents. CRITICAL: Display ONLY message text VERBATIM with NO attribution. Do NOT add 'bot said', 'agent replied'. Present as YOUR OWN words. Exception: On transfer, announce 'Transferring to [name]' then greeting.",
+        "description": "Get messages. CRITICAL RULE: Reply with ONLY the message text - NOTHING MORE. Do NOT add 'Selena replied:', greetings, commentary, or instructions. WRONG: 'Selena replied: Hello' ❌ RIGHT: 'Hello' ✅ You ARE the messenger speaking their words. Exception: On transfer say 'Transferring to [name]' then their greeting.",
         "requestBody": {
           "required": true,
           "content": {
@@ -231,7 +231,7 @@
                       "items": {
                         "type": "object"
                       },
-                      "description": "Array of messages from chatbots AND live agents (excludes only 'Automated Process'). Display the most recent message text verbatim. Bot greetings, bot responses, and agent messages are ALL valid."
+                      "description": "Messages from bots/agents. Extract ONLY the text from the most recent message. Reply with EXACTLY that text and NOTHING ELSE. No 'X said:', no extra words."
                     }
                   }
                 }
