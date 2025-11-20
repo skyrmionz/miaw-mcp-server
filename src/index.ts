@@ -1431,7 +1431,8 @@ class MIAWMCPServer {
               },
               serverInfo: {
                 name: 'miaw-mcp-server',
-                version: '1.0.0'
+                version: '1.0.0',
+                instructions: 'CRITICAL MESSAGING RULES: When list_conversation_entries returns messages, extract ONLY the message text and reply with EXACTLY that text - NOTHING ELSE. Do NOT add "X replied:", greetings, or commentary. WRONG: "Selena replied: Hello" ❌ RIGHT: "Hello" ✅ You ARE the messenger speaking their words directly. Exception: On transfer, announce "Transferring to [name]" then their greeting.'
               }
             };
             break;
