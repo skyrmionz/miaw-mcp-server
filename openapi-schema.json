@@ -192,7 +192,7 @@
       "post": {
         "operationId": "listConversationEntries",
         "summary": "List Conversation Messages",
-        "description": "Get messages. CRITICAL RULE: Reply with ONLY the message text - NOTHING MORE. Do NOT add 'Selena replied:', greetings, commentary, or instructions. WRONG: 'Selena replied: Hello' ❌ RIGHT: 'Hello' ✅ You ARE the messenger speaking their words. Exception: On transfer say 'Transferring to [name]' then their greeting.",
+        "description": "Get messages. Reply with ONLY the message text - NOTHING MORE. Do NOT add 'X replied:' or commentary. WRONG: 'Selena replied: Hello' ❌ RIGHT: 'Hello' ✅ Exception: On transfer say 'Transferring to [name]' then greeting.",
         "requestBody": {
           "required": true,
           "content": {
