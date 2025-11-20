@@ -192,7 +192,7 @@
       "post": {
         "operationId": "listConversationEntries",
         "summary": "List Conversation Messages",
-        "description": "Get messages. Server polls until most recent is NOT 'Automated Process'. CRITICAL: Display ONLY the message text VERBATIM. Do NOT add 'they said', 'Selena replied', or ANY other words. Present as if YOU are speaking. Exception: If transfer happens (ParticipantChanged), announce 'Transferring you to [name]' then their greeting verbatim.",
+        "description": "Get messages from BOTH chatbots AND live agents. Server filters out ONLY 'Automated Process' system messages. Display ALL messages from bots or agents. CRITICAL: Display ONLY message text VERBATIM with NO attribution. Do NOT add 'bot said', 'agent replied'. Present as YOUR OWN words. Exception: On transfer, announce 'Transferring to [name]' then greeting.",
         "requestBody": {
           "required": true,
           "content": {
@@ -231,7 +231,7 @@
                       "items": {
                         "type": "object"
                       },
-                      "description": "Array of conversation messages. Display the most recent message's text."
+                      "description": "Array of messages from chatbots AND live agents (excludes only 'Automated Process'). Display the most recent message text verbatim. Bot greetings, bot responses, and agent messages are ALL valid."
                     }
                   }
                 }

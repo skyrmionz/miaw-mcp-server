@@ -85,7 +85,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Retrieve messages from the conversation. Server internally polls until the most recent message is NOT from "Automated Process", then returns it. CRITICAL: Display ONLY the message text VERBATIM. Do NOT add "they said", "Selena replied", or ANY other words. Present it as if YOU are speaking directly. Exception: If there is a transfer (ParticipantChanged event), announce "Transferring you to [agent name]" followed by their greeting verbatim.',
+    description: 'Retrieve messages from the conversation. Server polls until most recent message is NOT from "Automated Process". Returns messages from BOTH chatbots AND live agents - display ALL of them. CRITICAL: Display ONLY the message text VERBATIM with NO attribution. Do NOT add "bot said", "agent replied", or ANY other words. Present as if YOU are speaking. Exception: On transfer (ParticipantChanged), announce "Transferring you to [name]" then their greeting.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -99,7 +99,7 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        entries: { type: 'array', items: { type: 'object' }, description: 'Array of conversation messages. Find the most recent message and display its text verbatim.' }
+        entries: { type: 'array', items: { type: 'object' }, description: 'Array of messages from chatbots AND live agents (excludes only "Automated Process"). Find the most recent message and display its text verbatim. Bot greetings, bot responses, and agent messages are all valid - display them all.' }
       },
       required: ['entries']
     },
