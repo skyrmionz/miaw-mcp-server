@@ -1,299 +1,393 @@
-# MIAW MCP Server
+# Salesforce MIAW MCP Server for ChatGPT
 
-A Model Context Protocol (MCP) server implementation for Salesforce Enhanced Chat (MIAW - Messaging in App and Web) API. This server enables AI agents like ChatGPT to interact with Salesforce's messaging system, allowing them to escalate conversations to human or AI agents within Salesforce when additional support is needed.
+Connect ChatGPT to your Salesforce Enhanced Chat (MIAW - Messaging for In-App and Web) so your AI assistant can seamlessly hand off conversations to Salesforce agents (both Agentforce bots and human agents).
 
-## 🚀 Features
+## 🎯 What This Does
 
-- **Complete MIAW API Coverage**: All Enhanced Chat API endpoints are exposed as MCP tools
-- **Authentication Support**: Both authenticated (JWT) and unauthenticated (guest) user flows
-- **Conversation Management**: Create, manage, and monitor chat conversations
-- **Message Handling**: Send/receive messages, typing indicators, and file attachments
-- **Session Management**: Token management, continuation tokens, and session control
-- **Easy Configuration**: Simple environment variable-based setup
+This MCP (Model Context Protocol) server enables ChatGPT to:
+- Start messaging sessions with Salesforce agents
+- Send and receive messages in real-time
+- Handle transfers between AI and human agents
+- Maintain conversation context throughout the handoff
 
-## 📋 Prerequisites
+Perfect for when your ChatGPT assistant needs expert help or encounters questions beyond its scope.
 
-- Node.js 18+ and npm
-- A Salesforce org with Enhanced Chat configured
-- Custom Client deployment for Enhanced Chat (see [Salesforce Documentation](https://developer.salesforce.com/docs/service/messaging-api/guide/get-started.html))
+## ⚡ Quick Start
 
-## 🛠️ Installation
+### Prerequisites
 
-### 1. Clone or Download this Repository
+1. **Salesforce Org** with Enhanced Chat (MIAW) enabled
+   - Service Cloud with Messaging for In-App and Web
+   - Embedded Service Deployment configured
+   - Agent availability (Agentforce or human agents)
 
-```bash
-cd "MIAW MCP Server"
-```
+2. **Heroku Account** (free tier works)
+   - Sign up at [heroku.com](https://heroku.com)
 
-### 2. Install Dependencies
+3. **ChatGPT Plus or Team**
+   - For MCP Connectors: Developer Mode enabled
+   - For Custom GPT: Ability to create custom GPTs
 
-```bash
-npm install
-```
+4. **Tools Installed**
+   - Git
+   - Node.js 18+ (for local testing, optional)
 
-### 3. Configure Environment Variables
+### Step 1: Get Salesforce Credentials
 
-Copy the example environment file and fill in your Salesforce details:
+You need three pieces of information from your Salesforce org:
 
-```bash
-cp env.example .env
-```
+1. **SCRT URL** (Salesforce Chat Runtime URL)
+   - Format: `https://scrt01.uengage1.sfdc-yfeipo.svc.sfdcfc.net`
+   - Find in: Setup → Embedded Service Deployments → Your Deployment → View
 
-Edit `.env` with your Salesforce configuration:
+2. **Embedded Service Developer Name**
+   - Example: `Target_Messaging_for_In_App_and_Web`
+   - Find in: Setup → Embedded Service Deployments → API Name
 
-```env
-MIAW_SCRT_URL=your-company.salesforce-scrt.com
-MIAW_ORG_ID=00Dxx0000000xxx
-MIAW_ES_DEVELOPER_NAME=YourDeploymentName
-```
+3. **Organization ID**
+   - Example: `00DHu000000p8j3R`
+   - Find in: Setup → Company Information → Organization ID
 
-#### How to Find Your Configuration Values:
+### Step 2: Deploy to Heroku
 
-- **MIAW_SCRT_URL**: Found in your Enhanced Chat deployment code snippet. Look for the URL in the format `https://[your-company].salesforce-scrt.com`. Use only the domain part (without `https://`).
-- **MIAW_ORG_ID**: In Salesforce Setup, go to **Company Information** and copy the **Organization ID** (15 characters).
-- **MIAW_ES_DEVELOPER_NAME**: The API/Developer Name of your Embedded Service deployment. Find this in Setup > Embedded Service Deployments.
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-### 4. Build the Project
-
-```bash
-npm run build
-```
-
-## 🔧 Usage
-
-### Running the MCP Server
-
-The server runs as an MCP stdio server:
+Or manually:
 
 ```bash
-npm start
-```
+# Clone the repository
+git clone https://github.com/yourusername/miaw-mcp-server.git
+cd miaw-mcp-server
 
-Or during development:
-
-```bash
-npm run dev
-```
-
-### Integrating with ChatGPT or Other AI Agents
-
-To use this MCP server with ChatGPT (via Claude Desktop or other MCP-compatible platforms), add it to your MCP configuration:
-
-**For Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):**
-
-```json
-{
-  "mcpServers": {
-    "miaw": {
-      "command": "node",
-      "args": ["/absolute/path/to/MIAW MCP Server/dist/index.js"],
-      "env": {
-        "MIAW_SCRT_URL": "your-company.salesforce-scrt.com",
-        "MIAW_ORG_ID": "00Dxx0000000xxx",
-        "MIAW_ES_DEVELOPER_NAME": "YourDeploymentName"
-      }
-    }
-  }
-}
-```
-
-**For other MCP clients**, refer to their documentation on how to add stdio-based MCP servers.
-
-## 🌐 Deployment Options
-
-### Local Deployment (stdio mode)
-
-The default mode runs the server locally using stdio transport, perfect for Claude Desktop integration. Follow the installation steps above.
-
-### Hosted Deployment (HTTP/SSE mode)
-
-Deploy to a cloud platform like Heroku to make your MCP server accessible via HTTP/SSE, allowing remote AI agents to connect.
-
-#### Deploy to Heroku
-
-**Quick Deploy:**
-
-[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
-
-**Or deploy using Heroku Git:**
-
-```bash
-# 1. Login to Heroku
-heroku login
-
-# 2. Create Heroku app
+# Create Heroku app
 heroku create your-app-name
 
-# 3. Set environment variables
-heroku config:set MIAW_SCRT_URL=your-company.salesforce-scrt.com
-heroku config:set MIAW_ORG_ID=00Dxx0000000xxx
-heroku config:set MIAW_ES_DEVELOPER_NAME=YourDeploymentName
-heroku config:set MCP_TRANSPORT=http
+# Set environment variables
+heroku config:set MIAW_SCRT_URL="https://your-scrt-url.net"
+heroku config:set MIAW_ES_DEVELOPER_NAME="Your_ES_Developer_Name"
+heroku config:set MIAW_ORG_ID="00DHu000000p8j3R"
+heroku config:set MCP_TRANSPORT="http"
+heroku config:set PORT="443"
 
-# 4. Deploy
-git init  # if not already initialized
-git add .
-git commit -m "Deploy to Heroku"
+# Deploy
 git push heroku main
 
-# 5. Verify
+# Verify deployment
 heroku open
 ```
 
-**Your MCP server will be accessible at:**
-- **Base URL:** `https://your-app-name.herokuapp.com`
-- **MCP Endpoint:** `https://your-app-name.herokuapp.com/sse`
-- **Health Check:** `https://your-app-name.herokuapp.com/health`
+You should see: `{"status":"ok","message":"MIAW MCP Server",...}`
 
-**📖 Full Heroku deployment guide:** See [HEROKU_DEPLOYMENT.md](HEROKU_DEPLOYMENT.md)
+### Step 3: Connect to ChatGPT
 
-#### Other Hosting Options
+You have two options:
 
-The server can be deployed to any Node.js hosting platform:
+#### Option A: MCP Connector (Simpler, requires Developer Mode)
 
-- **Render**: Similar to Heroku with free tier
-- **Railway**: Modern platform with simple deployment
-- **Fly.io**: Global edge deployment
-- **AWS ECS/Fargate**: Enterprise container hosting
-- **Google Cloud Run**: Serverless container platform
-- **Azure App Service**: Microsoft cloud platform
+1. Go to ChatGPT → Settings → Developer → Apps & Connectors
+2. Click "Add MCP Server"
+3. Enter your Heroku URL: `https://your-app-name.herokuapp.com/mcp`
+4. Done! The tools will appear in your ChatGPT chat
 
-Set `MCP_TRANSPORT=http` environment variable to enable HTTP/SSE mode.
+#### Option B: Custom GPT (More Stable, Recommended)
 
-## 🔌 Available Tools
-
-The MCP server exposes the following tools that AI agents can use:
-
-### Authentication & Session Management
-
-- **`generate_guest_access_token`**: Generate an access token for unauthenticated users
-- **`generate_authenticated_access_token`**: Generate an access token using JWT for authenticated users
-- **`generate_continuation_token`**: Maintain session and prevent timeout
-- **`revoke_token`**: Revoke the current access token
-
-### Conversation Management
-
-- **`create_conversation`**: Start a new chat conversation with a Salesforce agent
-- **`list_conversations`**: List all conversations for the current user
-- **`close_conversation`**: Close an active conversation
-- **`end_messaging_session`**: End the entire messaging session
-
-### Messaging
-
-- **`send_message`**: Send a text message in a conversation
-- **`list_conversation_entries`**: List all messages in a conversation
-- **`get_conversation_transcript`**: Get the full transcript of a conversation
-- **`send_typing_indicator`**: Send typing indicator (is typing / stopped typing)
-- **`send_file`**: Send a file attachment
-- **`send_delivery_acknowledgements`**: Send read receipts or delivery confirmations
-
-### Status & Monitoring
-
-- **`get_conversation_routing_status`**: Check if conversation is queued, connected, etc.
-
-## 📖 Example Workflow
-
-Here's a typical conversation flow an AI agent would follow:
+1. Go to ChatGPT → Create a GPT
+2. Configure your GPT with these **Instructions**:
 
 ```
-1. generate_guest_access_token (deviceId: "unique-device-id")
-   → Returns: { accessToken, ... }
+You are a helpful shopping assistant for Target. When you encounter questions you cannot answer or when the user requests to speak with an agent, connect them to Salesforce support.
 
-2. create_conversation (capabilities: ["MessageRead", "MessageDelivered"])
-   → Returns: { conversationId, ... }
+CRITICAL MESSAGING RULES:
 
-3. send_message (conversationId: "xxx", text: "Hello, I need help...")
-   → Returns: { id, ... }
+When you receive messages from list_conversation_entries:
+1. Extract ONLY the message text from the most recent entry
+2. Reply to the user with EXACTLY that text - NOTHING ELSE
+3. Do NOT add "Selena replied:", "The agent said:", or ANY prefix
+4. Do NOT add follow-up questions, commentary, or instructions
+5. Present the message AS IF you are speaking those words directly
 
-4. list_conversation_entries (conversationId: "xxx")
-   → Returns: { entries: [...messages...] }
+WRONG: "Selena replied: 'Hello' - go ahead and respond!"
+RIGHT: "Hello"
 
-5. get_conversation_routing_status (conversationId: "xxx")
-   → Returns: { routingResult: { status: "Connected" } }
+Exception: On agent transfer (ParticipantChanged event), announce "Transferring you to [name]" then show their greeting only.
 
-6. (Continue messaging back and forth)
-
-7. close_conversation (conversationId: "xxx")
-   → Returns: { success: true }
+You ARE the messenger. Their words become YOUR words. No meta-commentary.
 ```
 
-## 🏗️ Salesforce Setup
+3. Add **Actions**:
+   - Import schema from: `https://your-app-name.herokuapp.com/openapi-schema.json`
+   - Authentication: None
+   - Privacy Policy: `https://your-app-name.herokuapp.com/privacy-policy`
 
-### Configure Enhanced Chat for Custom Client
+4. Save and test!
 
-1. In Salesforce Setup, go to **Embedded Service Deployments**
-2. Create a new deployment or edit an existing one
-3. Set **Deployment Type** to **Custom Client**
-4. Configure your deployment settings (queues, routing, etc.)
-5. Publish the deployment
-6. Note the **Developer Name** (this is your `MIAW_ES_DEVELOPER_NAME`)
+## 📖 Available Tools
 
-### Optional: User Verification (JWT Authentication)
+The server provides 6 essential tools for a complete conversation flow:
 
-If you want to use authenticated users instead of guests:
+### 1. `generate_guest_access_token`
+Creates a session for the conversation.
 
-1. Follow the [Salesforce JWT documentation](https://developer.salesforce.com/docs/service/messaging-api/guide/authorization.html)
-2. Generate a signed JWT token
-3. Use the `generate_authenticated_access_token` tool instead of `generate_guest_access_token`
+**Parameters:**
+- `appName` (string): Your app name (e.g., "Target Shopping Assistant")
+- `clientVersion` (string): Your app version (e.g., "1.0.0")
 
-See:
-- [Understanding User Verification](https://help.salesforce.com/s/articleView?id=sf.snapins_chat_user_verification.htm)
-- [Add User Verification](https://help.salesforce.com/s/articleView?id=sf.snapins_chat_user_verification_setup.htm)
+**Returns:** `sessionId` - Use this in all subsequent calls
 
-## 📚 API Documentation
+### 2. `create_conversation`
+Starts a new conversation with Salesforce agents.
 
-For detailed information about the MIAW API, refer to the official Salesforce documentation:
+**Parameters:**
+- `sessionId` (string): From `generate_guest_access_token`
+- `esDeveloperName` (string): Embedded Service developer name (auto-filled from env)
+- `routingAttributes` (object, optional): Pre-chat form data
 
-- [Get Started](https://developer.salesforce.com/docs/service/messaging-api/guide/get-started.html)
-- [Authorization](https://developer.salesforce.com/docs/service/messaging-api/guide/authorization.html)
-- [API Reference](https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=Summary)
-- [Sample Configuration](https://developer.salesforce.com/docs/service/messaging-api/guide/miaw-sample-web-app.html)
+**Returns:** `conversationId` - The conversation ID for messaging
+
+### 3. `send_message`
+Sends a text message to the agent.
+
+**Parameters:**
+- `sessionId` (string): Your session ID
+- `conversationId` (string): From `create_conversation`
+- `text` (string): Message to send
+
+### 4. `list_conversation_entries`
+Retrieves messages from the conversation. **Server automatically polls** until an agent/bot message arrives (not just "Automated Process").
+
+**Parameters:**
+- `sessionId` (string): Your session ID
+- `conversationId` (string): From `create_conversation`
+
+**Returns:** Array of conversation entries (messages, transfers, etc.)
+
+### 5. `get_conversation_routing_status`
+Check if an agent is assigned to the conversation.
+
+**Parameters:**
+- `sessionId` (string): Your session ID
+- `conversationId` (string): From `create_conversation`
+
+### 6. `close_conversation`
+End the conversation with the agent.
+
+**Parameters:**
+- `sessionId` (string): Your session ID
+- `conversationId` (string): From `create_conversation`
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file (for local testing) or set on Heroku:
+
+```bash
+# Salesforce MIAW Configuration (REQUIRED)
+MIAW_SCRT_URL=https://scrt01.uengage1.sfdc-yfeipo.svc.sfdcfc.net
+MIAW_ES_DEVELOPER_NAME=Your_ES_Developer_Name
+MIAW_ORG_ID=00DHu000000p8j3R
+
+# Transport Configuration (REQUIRED for Heroku)
+MCP_TRANSPORT=http
+PORT=443
+```
+
+### Finding Your Salesforce Configuration
+
+#### SCRT URL (Chat Runtime URL)
+1. Go to Setup → Embedded Service Deployments
+2. Click on your deployment
+3. Click "View" next to the deployment
+4. Look for the base URL in the snippet code
+5. Format: `https://scrt##.uengage#.sfdc-******.svc.sfdcfc.net`
+
+#### ES Developer Name (API Name)
+1. Go to Setup → Embedded Service Deployments
+2. Find your deployment in the list
+3. The "API Name" column shows your developer name
+4. Example: `Target_Messaging_for_In_App_and_Web`
+
+#### Organization ID
+1. Go to Setup → Company Information
+2. Copy the "Organization ID"
+3. Format: `00D` followed by 15 characters
+
+## 🚀 How It Works
+
+### Conversation Flow
+
+```mermaid
+sequenceDiagram
+    User->>ChatGPT: "I need help with my order"
+    ChatGPT->>MCP Server: generate_guest_access_token()
+    MCP Server->>Salesforce: Request access token
+    Salesforce-->>MCP Server: Access token
+    MCP Server-->>ChatGPT: sessionId
+    ChatGPT->>MCP Server: create_conversation(sessionId)
+    MCP Server->>Salesforce: Create conversation
+    Salesforce-->>MCP Server: conversationId
+    ChatGPT->>MCP Server: list_conversation_entries(sessionId, conversationId)
+    MCP Server->>Salesforce: Poll for messages (every 500ms, up to 25s)
+    Salesforce-->>MCP Server: Agent greeting
+    MCP Server-->>ChatGPT: "Hi! I'm Selena, how can I help?"
+    ChatGPT->>User: "Hi! I'm Selena, how can I help?"
+    User->>ChatGPT: "My order hasn't arrived"
+    ChatGPT->>MCP Server: send_message(sessionId, conversationId, text)
+    MCP Server->>Salesforce: Send message
+    ChatGPT->>MCP Server: list_conversation_entries(sessionId, conversationId)
+    MCP Server->>Salesforce: Poll for agent response
+    Salesforce-->>MCP Server: Agent response
+    MCP Server-->>ChatGPT: "Let me look that up for you..."
+    ChatGPT->>User: "Let me look that up for you..."
+```
+
+### Server-Side Polling
+
+The server intelligently handles polling so ChatGPT doesn't have to:
+
+- When `list_conversation_entries` is called, the server internally polls every **500ms**
+- Waits up to **25 seconds** (Heroku's 30s timeout - 5s buffer)
+- Returns immediately when a non-"Automated Process" message appears
+- Filters out system messages automatically
+- ChatGPT receives only the final result
+
+This means ChatGPT always gets timely agent responses without complex polling logic!
+
+## 🛠️ Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Set environment variables
+cp .env.example .env
+# Edit .env with your Salesforce credentials
+
+# Build
+npm run build
+
+# Run locally (stdio mode for testing with Claude Desktop)
+npm start
+
+# Or run HTTP mode (for testing with curl)
+MCP_TRANSPORT=http PORT=3000 node dist/index.js
+```
+
+### Testing with cURL
+
+```bash
+# Health check
+curl http://localhost:3000/
+
+# Initialize MCP
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
+
+# List tools
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+# Call generate_guest_access_token
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":3,
+    "method":"tools/call",
+    "params":{
+      "name":"generate_guest_access_token",
+      "arguments":{"appName":"Test App","clientVersion":"1.0.0"}
+    }
+  }'
+```
 
 ## 🐛 Troubleshooting
 
-### Common Issues
+### "Error creating connector" or "Connection closed"
 
-**"Missing required environment variables"**
-- Make sure your `.env` file exists and contains all required variables
-- Verify the values are correct (no extra spaces, quotes, etc.)
+**Solution:** Make sure your Heroku app is using the `/mcp` endpoint:
+```
+https://your-app-name.herokuapp.com/mcp
+```
 
-**"401 Unauthorized" or "403 Forbidden"**
-- Check that your `MIAW_ORG_ID` and `MIAW_ES_DEVELOPER_NAME` are correct
-- Ensure your Enhanced Chat deployment is published and active
-- Verify the deployment type is set to "Custom Client"
+### "Request failed with status code 400" on token generation
 
-**"Connection timeout"**
-- Verify your `MIAW_SCRT_URL` is correct and accessible
-- Check your network/firewall settings
+**Cause:** Invalid Salesforce configuration.
 
-**"Invalid deviceId"**
-- DeviceId should be a unique identifier, preferably in UUID format
-- Example: `"b8c06d01-b410-4097-bd8a-03cc71862d24"`
+**Solution:**
+1. Verify `MIAW_SCRT_URL` is correct (no trailing slash)
+2. Verify `MIAW_ES_DEVELOPER_NAME` exactly matches Salesforce
+3. Verify `MIAW_ORG_ID` is your current org ID
 
-### Enable Debug Logging
+### "Request failed with status code 401" on conversation creation
 
-To see detailed request/response logs, you can modify the axios instance in `src/index.ts` to add interceptors.
+**Cause:** Session expired or invalid.
+
+**Solution:** Generate a new session with `generate_guest_access_token`
+
+### ChatGPT says "Selena replied: ..." instead of just the message
+
+**Cause:** Missing instructions in Custom GPT.
+
+**Solution:** Copy the "CRITICAL MESSAGING RULES" section into your Custom GPT's Instructions field.
+
+### Messages arrive late or not at all
+
+**Cause:** Server-side polling may need adjustment.
+
+**Solution:** Check Heroku logs:
+```bash
+heroku logs --tail --app your-app-name
+```
+
+Look for "Polling for non-Automated-Process message..." logs.
+
+### "Request timeout" (30s+)
+
+**Cause:** No agent available or very slow response.
+
+**Solution:**
+1. Ensure agents are online in Salesforce
+2. Check agent capacity settings
+3. Verify routing configuration in Salesforce
+
+## 📚 Resources
+
+- [Salesforce MIAW API Documentation](https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference)
+- [Model Context Protocol Specification](https://modelcontextprotocol.io)
+- [Heroku Deployment Guide](https://devcenter.heroku.com/articles/git)
+- [OpenAI Custom GPT Documentation](https://platform.openai.com/docs/actions)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-MIT License - See LICENSE file for details
+MIT License - see [LICENSE](LICENSE) file for details
 
 ## 🙏 Acknowledgments
 
-- Built on the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- Powered by [Salesforce Enhanced Chat API](https://developer.salesforce.com/docs/service/messaging-api/overview)
+Built with:
+- [@modelcontextprotocol/sdk](https://github.com/modelcontextprotocol/typescript-sdk)
+- [Express.js](https://expressjs.com/)
+- [Axios](https://axios-http.com/)
+- Salesforce Enhanced Chat (MIAW) API
 
-## 🔗 Related Resources
+## 💬 Support
 
-- [Salesforce Enhanced Chat Documentation](https://developer.salesforce.com/docs/service/messaging-api/overview)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [Salesforce Developer Center](https://developer.salesforce.com/)
+- **Issues:** [GitHub Issues](https://github.com/yourusername/miaw-mcp-server/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/yourusername/miaw-mcp-server/discussions)
+- **Salesforce Help:** [Trailblazer Community](https://trailblazers.salesforce.com)
 
 ---
 
-**Need Help?** Check the [Salesforce Developer Forums](https://developer.salesforce.com/forums) or review the [API documentation](https://developer.salesforce.com/docs/service/messaging-api/guide/get-started.html).
-
+Made with ❤️ for the Salesforce and AI community

@@ -1,7 +1,7 @@
 {
   "name": "MIAW MCP Server",
-  "description": "MCP Server for Salesforce Enhanced Chat (MIAW) API - enables AI agents to interact with Salesforce messaging",
-  "repository": "https://github.com/your-repo/miaw-mcp-server",
+  "description": "Connect ChatGPT to Salesforce Enhanced Chat (MIAW) - enables seamless handoffs to Salesforce agents (both AI and human)",
+  "repository": "https://github.com/yourusername/miaw-mcp-server",
   "logo": "https://cdn.worldvectorlogo.com/logos/salesforce-2.svg",
   "keywords": [
     "mcp",
@@ -11,6 +11,7 @@
     "messaging",
     "ai-agent",
     "chatgpt",
+    "agentforce",
     "claude"
   ],
   "stack": "heroku-22",
@@ -21,30 +22,25 @@
   ],
   "env": {
     "MIAW_SCRT_URL": {
-      "description": "Your Salesforce SCRT URL (without https://). Example: mycompany.salesforce-scrt.com",
-      "required": true
-    },
-    "MIAW_ORG_ID": {
-      "description": "Your Salesforce Organization ID (15 characters). Find in Setup > Company Information",
+      "description": "Salesforce Chat Runtime URL (SCRT URL) - Find in: Setup → Embedded Service Deployments → Your Deployment → View. Format: https://scrt01.uengage1.sfdc-yfeipo.svc.sfdcfc.net",
       "required": true
     },
     "MIAW_ES_DEVELOPER_NAME": {
-      "description": "Enhanced Chat Deployment Developer Name (API Name). Find in Setup > Embedded Service Deployments",
+      "description": "Embedded Service Deployment Developer Name (API Name) - Find in: Setup → Embedded Service Deployments → API Name column. Example: Target_Messaging_for_In_App_and_Web",
       "required": true
     },
-    "MIAW_CAPABILITIES_VERSION": {
-      "description": "Capabilities version",
-      "value": "1",
-      "required": false
-    },
-    "MIAW_PLATFORM": {
-      "description": "Platform identifier",
-      "value": "Web",
-      "required": false
+    "MIAW_ORG_ID": {
+      "description": "Salesforce Organization ID - Find in: Setup → Company Information → Organization ID. Format: 00D followed by 15 characters",
+      "required": true
     },
     "MCP_TRANSPORT": {
-      "description": "Transport mode (http or stdio)",
+      "description": "Transport mode for MCP (use 'http' for Heroku deployment)",
       "value": "http",
+      "required": true
+    },
+    "PORT": {
+      "description": "Port for HTTP server (Heroku automatically assigns this)",
+      "value": "443",
       "required": false
     }
   },
@@ -55,4 +51,3 @@
     }
   }
 }
-
