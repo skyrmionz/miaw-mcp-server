@@ -74,7 +74,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     },
     "/api/create-conversation": {
@@ -128,7 +130,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     },
     "/api/send-message": {
@@ -185,7 +189,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     },
     "/api/list-conversation-entries": {
@@ -239,7 +245,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     },
     "/api/get-conversation-status": {
@@ -288,7 +296,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     },
     "/api/close-conversation": {
@@ -334,7 +344,9 @@
             }
           }
         },
-        "x-openai-isConsequential": false
+        "x-openai-isConsequential": false,
+        "x-openai-invoking-message": "Talking to Salesforce",
+        "x-openai-invoked-message": "Salesforce responded"
       }
     }
   }
