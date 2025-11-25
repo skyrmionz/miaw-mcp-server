@@ -36,7 +36,9 @@ dotenv.config();
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// In production, dist/index.js needs to go up to root, then to widgets
 const WIDGETS_DIR = path.resolve(__dirname, '..', 'widgets');
+console.error('Widget directory path:', WIDGETS_DIR);
 
 // Widget configuration for Salesforce Chat
 const salesforceChatWidget = {
@@ -52,11 +54,16 @@ const salesforceChatWidget = {
 // Load widget HTML
 try {
   const htmlPath = path.join(WIDGETS_DIR, 'salesforce-chat.html');
+  console.error('Attempting to load widget from:', htmlPath);
+  console.error('Widget directory exists:', fs.existsSync(WIDGETS_DIR));
+  console.error('Widget file exists:', fs.existsSync(htmlPath));
+  
   if (fs.existsSync(htmlPath)) {
     salesforceChatWidget.html = fs.readFileSync(htmlPath, 'utf8');
-    console.error('✓ Loaded Salesforce chat widget HTML');
+    console.error('✓ Loaded Salesforce chat widget HTML (' + salesforceChatWidget.html.length + ' bytes)');
   } else {
     console.error('⚠ Warning: salesforce-chat.html not found at', htmlPath);
+    console.error('Available files in WIDGETS_DIR:', fs.existsSync(WIDGETS_DIR) ? fs.readdirSync(WIDGETS_DIR) : 'DIR NOT FOUND');
   }
 } catch (error) {
   console.error('⚠ Warning: Could not load widget HTML:', error);
