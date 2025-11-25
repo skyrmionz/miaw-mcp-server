@@ -170,6 +170,36 @@ export const MIAW_TOOLS: any[] = [
       'openai/toolInvocation/invoking': 'Talking to Salesforce',
       'openai/toolInvocation/invoked': 'Salesforce responded'
     }
+  },
+  {
+    name: 'show_salesforce_chat',
+    title: 'Show Salesforce Live Chat',
+    description: 'Show embedded Salesforce live chat interface. Use this when a conversation is being routed to a live agent (when sender is NOT "Chatbot"). Displays a real-time chat widget where the user can communicate directly with Salesforce agents without ChatGPT as a middleman. The widget handles sending and receiving messages automatically.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID from generate_guest_access_token (REQUIRED)' },
+        conversationId: { type: 'string', description: 'The ID of the conversation (REQUIRED)' },
+        agentName: { type: 'string', description: 'Name of the agent (optional, defaults to "Salesforce Agent")' }
+      },
+      required: ['sessionId', 'conversationId'],
+      additionalProperties: false
+    },
+    outputSchema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', description: 'Whether the chat widget was displayed successfully' },
+        message: { type: 'string', description: 'Status message' }
+      }
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    _meta: {
+      'openai/outputTemplate': 'ui://widget/salesforce-chat.html',
+      'openai/toolInvocation/invoking': 'Connecting to Salesforce agent',
+      'openai/toolInvocation/invoked': 'Chat ready',
+      'openai/widgetAccessible': true,
+      'openai/resultCanProduceWidget': true
+    }
   }
 ];
 

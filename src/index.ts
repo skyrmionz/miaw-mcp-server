@@ -16,16 +16,69 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
   Tool
 } from '@modelcontextprotocol/sdk/types.js';
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import express from 'express';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import * as types from './types.js';
 import { MIAW_TOOLS } from './tool-definitions.js';
 
 // Load environment variables
 dotenv.config();
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const WIDGETS_DIR = path.resolve(__dirname, '..', 'widgets');
+
+// Widget configuration for Salesforce Chat
+const salesforceChatWidget = {
+  id: 'salesforce-chat',
+  title: 'Salesforce Live Chat',
+  templateUri: 'ui://widget/salesforce-chat.html',
+  invoking: 'Connecting to Salesforce agent',
+  invoked: 'Chat ready',
+  html: '',
+  responseText: 'Connected to Salesforce live agent. You can now chat directly with them in the interface above.'
+};
+
+// Load widget HTML
+try {
+  const htmlPath = path.join(WIDGETS_DIR, 'salesforce-chat.html');
+  if (fs.existsSync(htmlPath)) {
+    salesforceChatWidget.html = fs.readFileSync(htmlPath, 'utf8');
+    console.error('✓ Loaded Salesforce chat widget HTML');
+  } else {
+    console.error('⚠ Warning: salesforce-chat.html not found at', htmlPath);
+  }
+} catch (error) {
+  console.error('⚠ Warning: Could not load widget HTML:', error);
+}
+
+// Widget metadata helpers
+function widgetDescriptorMeta(widget: typeof salesforceChatWidget) {
+  return {
+    'openai/outputTemplate': widget.templateUri,
+    'openai/toolInvocation/invoking': widget.invoking,
+    'openai/toolInvocation/invoked': widget.invoked,
+    'openai/widgetAccessible': true,
+    'openai/resultCanProduceWidget': true
+  };
+}
+
+function widgetInvocationMeta(widget: typeof salesforceChatWidget) {
+  return {
+    'openai/toolInvocation/invoking': widget.invoking,
+    'openai/toolInvocation/invoked': widget.invoked
+  };
+}
 
 /**
  * MIAW API Client
@@ -394,6 +447,7 @@ class MIAWMCPServer {
       {
         capabilities: {
           tools: {},
+          resources: {},
         },
       }
     );
@@ -434,6 +488,49 @@ class MIAWMCPServer {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: this.getTools(),
+    }));
+
+    // List resources (for widgets)
+    this.server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: [
+        {
+          uri: salesforceChatWidget.templateUri,
+          name: salesforceChatWidget.title,
+          description: `${salesforceChatWidget.title} widget markup`,
+          mimeType: 'text/html+skybridge',
+          _meta: widgetDescriptorMeta(salesforceChatWidget)
+        }
+      ]
+    }));
+
+    // Read resource (serve widget HTML)
+    this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      if (request.params.uri === salesforceChatWidget.templateUri) {
+        return {
+          contents: [
+            {
+              uri: salesforceChatWidget.templateUri,
+              mimeType: 'text/html+skybridge',
+              text: salesforceChatWidget.html,
+              _meta: widgetDescriptorMeta(salesforceChatWidget)
+            }
+          ]
+        };
+      }
+      throw new Error(`Unknown resource: ${request.params.uri}`);
+    });
+
+    // List resource templates
+    this.server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+      resourceTemplates: [
+        {
+          uriTemplate: salesforceChatWidget.templateUri,
+          name: salesforceChatWidget.title,
+          description: `${salesforceChatWidget.title} widget markup`,
+          mimeType: 'text/html+skybridge',
+          _meta: widgetDescriptorMeta(salesforceChatWidget)
+        }
+      ]
     }));
 
     // Handle tool calls
@@ -802,7 +899,7 @@ class MIAWMCPServer {
     client: MIAWClient,
     toolName: string,
     args: any
-  ): Promise<{ content: Array<{ type: string; text: string }>; _meta?: any }> {
+  ): Promise<{ content: Array<{ type: string; text: string }>; _meta?: any; structuredContent?: any }> {
     let result: any;
 
     switch (toolName) {
@@ -994,6 +1091,50 @@ class MIAWMCPServer {
         result = { success: true, message: 'Conversation closed' };
         break;
 
+      case 'show_salesforce_chat':
+        if (args.sessionId) {
+          const session = sessions.get(args.sessionId);
+          if (!session) {
+            throw new Error('Invalid sessionId. Please generate a new session first.');
+          }
+          client.setAccessToken(session.accessToken);
+        }
+        
+        // Get current conversation entries to pass to the widget
+        const chatEntries = await client.listConversationEntries(args.conversationId);
+        const allMessages = (chatEntries.entries || [])
+          .filter((e: any) => e.entryType === 'Message')
+          .filter((e: any) => {
+            const sender = e.senderDisplayName || '';
+            return !sender.includes('Automated Process');
+          })
+          .sort((a: any, b: any) => (a.transcriptedTimestamp || 0) - (b.transcriptedTimestamp || 0))
+          .map((e: any) => ({
+            sender: e.senderDisplayName || 'Agent',
+            senderType: e.senderRole,
+            senderName: e.senderDisplayName || 'Agent',
+            text: e.messageContent?.staticContent?.text || '',
+            timestamp: e.transcriptedTimestamp || Date.now()
+          }));
+        
+        // Return widget with structured content for the embedded UI
+        return {
+          content: [
+            {
+              type: 'text',
+              text: salesforceChatWidget.responseText
+            }
+          ],
+          structuredContent: {
+            sessionId: args.sessionId,
+            conversationId: args.conversationId,
+            serverUrl: process.env.SERVER_URL || 'https://miaw-mcp-server-6df009bc852c.herokuapp.com',
+            agentName: args.agentName || 'Salesforce Agent',
+            messages: allMessages
+          },
+          _meta: widgetInvocationMeta(salesforceChatWidget)
+        };
+
       case 'list_conversations':
         result = await client.listConversations();
         break;
@@ -1051,6 +1192,7 @@ class MIAWMCPServer {
       {
         capabilities: {
           tools: {},
+          resources: {},
         },
       }
     );
@@ -1058,6 +1200,49 @@ class MIAWMCPServer {
     // Setup handlers for this instance
     server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: this.getTools(),
+    }));
+
+    // List resources (for widgets)
+    server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+      resources: [
+        {
+          uri: salesforceChatWidget.templateUri,
+          name: salesforceChatWidget.title,
+          description: `${salesforceChatWidget.title} widget markup`,
+          mimeType: 'text/html+skybridge',
+          _meta: widgetDescriptorMeta(salesforceChatWidget)
+        }
+      ]
+    }));
+
+    // Read resource (serve widget HTML)
+    server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+      if (request.params.uri === salesforceChatWidget.templateUri) {
+        return {
+          contents: [
+            {
+              uri: salesforceChatWidget.templateUri,
+              mimeType: 'text/html+skybridge',
+              text: salesforceChatWidget.html,
+              _meta: widgetDescriptorMeta(salesforceChatWidget)
+            }
+          ]
+        };
+      }
+      throw new Error(`Unknown resource: ${request.params.uri}`);
+    });
+
+    // List resource templates
+    server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+      resourceTemplates: [
+        {
+          uriTemplate: salesforceChatWidget.templateUri,
+          name: salesforceChatWidget.title,
+          description: `${salesforceChatWidget.title} widget markup`,
+          mimeType: 'text/html+skybridge',
+          _meta: widgetDescriptorMeta(salesforceChatWidget)
+        }
+      ]
     }));
 
     server.setRequestHandler(CallToolRequestSchema, async (request) => {
