@@ -1083,9 +1083,12 @@ class MIAWMCPServer {
             mostRecentSenderRole: senderRole,
             mostRecentSenderName: senderDisplayName,
             isLiveAgent: isLiveAgent,
+            // Include sessionId/conversationId so ChatGPT can pass them to show_salesforce_chat
+            sessionIdToUse: args.sessionId,
+            conversationIdToUse: args.conversationId,
             instruction: isLiveAgent 
-              ? `LIVE AGENT "${senderDisplayName}" HAS JOINED. Call show_salesforce_chat with agentName="${senderDisplayName}" NOW to show the chat widget.`
-              : `Role is "${senderRole}" (not Agent). Display the message as your response. Keep polling list_conversation_entries until role="Agent".`
+              ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
+              : `Role is "${senderRole}" (not Agent). Display this message. Keep polling until isLiveAgent=true.`
           }
         };
         break;

@@ -94,7 +94,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Get messages. Check _roleInfo.mostRecentSenderRole in response. IGNORE role="System". If role="Chatbot", display the message. If role="Agent", call show_salesforce_chat with agentName from _roleInfo.mostRecentSenderName. Keep polling until you see role="Agent".',
+    description: 'Get messages. Check _roleInfo.isLiveAgent. If false (Chatbot): display message, poll again. If true (Agent): call show_salesforce_chat using sessionIdToUse, conversationIdToUse, mostRecentSenderName from _roleInfo. STOP polling after calling show_salesforce_chat.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -174,13 +174,13 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'show_salesforce_chat',
     title: 'Transfer to Live Agent Chat',
-    description: 'ONLY call when list_conversation_entries returns _roleInfo.isLiveAgent=true (role="Agent"). DO NOT call if role="Chatbot" or role="System". Wait and keep polling list_conversation_entries until _roleInfo.isLiveAgent=true, then call this with agentName from _roleInfo.mostRecentSenderName.',
+    description: 'Call when _roleInfo.isLiveAgent=true. Use sessionIdToUse, conversationIdToUse, mostRecentSenderName from _roleInfo. STOP calling list_conversation_entries after this - the widget handles messages.',
     inputSchema: {
       type: 'object',
       properties: {
-        sessionId: { type: 'string', description: 'Session ID from generate_guest_access_token (REQUIRED)' },
-        conversationId: { type: 'string', description: 'The ID of the conversation (REQUIRED)' },
-        agentName: { type: 'string', description: 'Name of the live agent from senderDisplayName (REQUIRED when role=Agent)' }
+        sessionId: { type: 'string', description: 'Use _roleInfo.sessionIdToUse from list_conversation_entries response' },
+        conversationId: { type: 'string', description: 'Use _roleInfo.conversationIdToUse from list_conversation_entries response' },
+        agentName: { type: 'string', description: 'Use _roleInfo.mostRecentSenderName from list_conversation_entries response' }
       },
       required: ['sessionId', 'conversationId', 'agentName'],
       additionalProperties: false
