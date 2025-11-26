@@ -1692,6 +1692,58 @@ class MIAWMCPServer {
             result = toolResult;
             break;
 
+          case 'resources/list':
+            result = {
+              resources: [
+                {
+                  uri: salesforceChatWidget.templateUri,
+                  name: salesforceChatWidget.title,
+                  description: `${salesforceChatWidget.title} widget markup`,
+                  mimeType: 'text/html+skybridge',
+                  _meta: widgetDescriptorMeta(salesforceChatWidget)
+                }
+              ]
+            };
+            break;
+
+          case 'resources/read':
+            const resourceUri = jsonrpcRequest.params?.uri;
+            console.error('POST /mcp resources/read request for:', resourceUri);
+            
+            if (resourceUri === salesforceChatWidget.templateUri) {
+              if (!salesforceChatWidget.html) {
+                throw new Error('Widget HTML not loaded');
+              }
+              console.error('Returning widget HTML (' + salesforceChatWidget.html.length + ' bytes)');
+              result = {
+                contents: [
+                  {
+                    uri: salesforceChatWidget.templateUri,
+                    mimeType: 'text/html+skybridge',
+                    text: salesforceChatWidget.html,
+                    _meta: widgetDescriptorMeta(salesforceChatWidget)
+                  }
+                ]
+              };
+            } else {
+              throw new Error(`Unknown resource: ${resourceUri}`);
+            }
+            break;
+
+          case 'resources/templates/list':
+            result = {
+              resourceTemplates: [
+                {
+                  uriTemplate: salesforceChatWidget.templateUri,
+                  name: salesforceChatWidget.title,
+                  description: `${salesforceChatWidget.title} widget markup`,
+                  mimeType: 'text/html+skybridge',
+                  _meta: widgetDescriptorMeta(salesforceChatWidget)
+                }
+              ]
+            };
+            break;
+
           default:
             return res.status(200).json({
               jsonrpc: '2.0',
