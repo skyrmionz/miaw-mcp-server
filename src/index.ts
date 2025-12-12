@@ -76,7 +76,10 @@ function widgetDescriptorMeta(widget: typeof salesforceChatWidget) {
     'openai/toolInvocation/invoking': widget.invoking,
     'openai/toolInvocation/invoked': widget.invoked,
     'openai/widgetAccessible': true,
-    'openai/resultCanProduceWidget': true
+    'openai/resultCanProduceWidget': true,
+    // CSP and domain required for widget submission
+    'openai/csp': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://miaw-mcp-server-6df009bc852c.herokuapp.com https://*.salesforce.com;",
+    'openai/domain': 'miaw-mcp-server-6df009bc852c.herokuapp.com'
   };
 }
 
@@ -1077,8 +1080,18 @@ class MIAWMCPServer {
         // isLiveAgent is TRUE only when role is "Agent" (not Chatbot, not System)
         const isLiveAgent = senderRole === 'Agent';
         
+        // Filter entries to ONLY include Bot/Agent messages - exclude Automated Process and System
+        const filteredEntries = (entriesResult.entries || []).filter((e: any) => {
+          if (e.entryType !== 'Message') return true; // Keep non-message entries
+          const sender = e.senderDisplayName || '';
+          const role = e.sender?.role || e.senderRole || '';
+          // Exclude Automated Process AND System roles
+          return !sender.includes('Automated Process') && role !== 'System';
+        });
+        
         result = {
           ...entriesResult,
+          entries: filteredEntries, // Return filtered entries, NOT all entries
           _roleInfo: {
             mostRecentSenderRole: senderRole,
             mostRecentSenderName: senderDisplayName,
@@ -1152,7 +1165,9 @@ class MIAWMCPServer {
           .filter((e: any) => e.entryType === 'Message')
           .filter((e: any) => {
             const sender = e.senderDisplayName || '';
-            return !sender.includes('Automated Process');
+            const role = e.sender?.role || e.senderRole || '';
+            // Exclude Automated Process AND System roles
+            return !sender.includes('Automated Process') && role !== 'System';
           })
           .sort((a: any, b: any) => (a.transcriptedTimestamp || 0) - (b.transcriptedTimestamp || 0))
           .map((e: any) => ({
