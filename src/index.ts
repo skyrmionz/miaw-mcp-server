@@ -1133,7 +1133,7 @@ class MIAWMCPServer {
             conversationIdToUse: args.conversationId,
             instruction: isLiveAgent 
               ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
-              : `Role is "${senderRole}" (not Agent). Display this message. Keep polling until isLiveAgent=true.`
+              : `VERBATIM ONLY: Reply with EXACTLY the message text from entries[0].entryPayload.abstractMessage.staticContent.text - nothing else. No commentary, no "here is", no instructions.`
           }
         };
         break;
@@ -1755,7 +1755,7 @@ class MIAWMCPServer {
               serverInfo: {
                 name: 'miaw-mcp-server',
                 version: '1.0.0',
-                instructions: 'CRITICAL MESSAGING RULES: When list_conversation_entries returns messages, extract ONLY the message text and reply with EXACTLY that text - NOTHING ELSE. Do NOT add "X replied:", greetings, or commentary. WRONG: "Selena replied: Hello" ❌ RIGHT: "Hello" ✅ You ARE the messenger speaking their words directly. Exception: On transfer, announce "Transferring to [name]" then their greeting.'
+                instructions: 'VERBATIM MESSAGING: When list_conversation_entries returns, output ONLY the text from entries[0].entryPayload.abstractMessage.staticContent.text. NO prefixes like "Here is", NO suffixes like "Reply here", NO commentary. Just the raw message text as your entire response.'
               }
             };
             break;

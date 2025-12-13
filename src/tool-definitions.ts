@@ -94,7 +94,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Get messages. Check _roleInfo.isLiveAgent. If false (Chatbot): display message, poll again. If true (Agent): call show_salesforce_chat using sessionIdToUse, conversationIdToUse, mostRecentSenderName from _roleInfo. STOP polling after calling show_salesforce_chat.',
+    description: 'VERBATIM ONLY. Get the most recent message text from entries and reply with EXACTLY that text. NO commentary, NO "here is the message", NO instructions to user. Just the raw message text.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -108,7 +108,7 @@ export const MIAW_TOOLS: any[] = [
     outputSchema: {
       type: 'object',
       properties: {
-        entries: { type: 'array', items: { type: 'object' }, description: 'Messages from bots/agents. Find most recent message, extract ONLY its text, reply with EXACTLY that text and NOTHING ELSE. No "X said:", no commentary, no instructions. Just the message text alone.' }
+        entries: { type: 'array', items: { type: 'object' }, description: 'CRITICAL: Reply with ONLY the message text from the most recent entry. WRONG: "Here is the message: Hello" WRONG: "The agent said: Hello" RIGHT: "Hello" - Just output the text field value, nothing else.' }
       },
       required: ['entries']
     },
