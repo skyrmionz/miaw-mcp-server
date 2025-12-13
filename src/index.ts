@@ -1020,16 +1020,18 @@ class MIAWMCPServer {
           client.setAccessToken(session.accessToken);
         }
         
-        // Simple polling: Wait until most recent message is NOT "Automated Process"
+        // Polling: Wait until we have a valid message from Chatbot or Agent (not System/Automated)
         const maxWaitTime = 25000; // 25 seconds (Heroku has 30s timeout)
         const pollInterval = 500; // 500ms (0.5 seconds) - faster response!
         const startTime = Date.now();
         let entriesResult: any;
-        let mostRecentIsNotAutomated = false;
+        let foundValidMessage = false;
+        let mostRecentValidRole = '';
+        let mostRecentValidSender = '';
         
-        console.error('Polling for non-Automated-Process message...');
+        console.error('Polling for valid Chatbot/Agent message...');
         
-        // Poll until most recent message is NOT "Automated Process" OR timeout
+        // Poll until most recent valid message is from Chatbot or Agent (not System)
         while (Date.now() - startTime < maxWaitTime) {
           const pollStart = Date.now();
           
@@ -1044,31 +1046,38 @@ class MIAWMCPServer {
           // Salesforce returns conversationEntries (not entries)
           const allEntries: any[] = entriesResult.conversationEntries || entriesResult.entries || [];
           
-          // Find most recent message by timestamp
-          const messages = allEntries
+          // Find most recent VALID message (exclude System role and Automated Process)
+          const validMessages = allEntries
             .filter((e: any) => e.entryType === 'Message')
+            .filter((e: any) => {
+              const sender = e.senderDisplayName || '';
+              const role = e.sender?.role || '';
+              // ONLY accept Chatbot, Agent, or EndUser - reject System and Automated Process
+              const isValidRole = role === 'Chatbot' || role === 'Agent' || role === 'EndUser';
+              const isNotAutomated = !sender.includes('Automated Process');
+              return isValidRole && isNotAutomated;
+            })
             .sort((a: any, b: any) => (b.transcriptedTimestamp || 0) - (a.transcriptedTimestamp || 0));
           
-          const mostRecentMessage = messages[0];
-          const mostRecentSender = mostRecentMessage?.senderDisplayName || '';
+          const mostRecentValid = validMessages[0];
           
-          // Check if most recent is NOT Automated Process
-          mostRecentIsNotAutomated = mostRecentMessage && !mostRecentSender.includes('Automated Process');
-          
-          if (mostRecentIsNotAutomated) {
-            console.error(`Most recent message is from "${mostRecentSender}" (not Automated Process). Returning immediately!`);
+          if (mostRecentValid) {
+            mostRecentValidRole = mostRecentValid.sender?.role || '';
+            mostRecentValidSender = mostRecentValid.senderDisplayName || '';
+            foundValidMessage = true;
+            console.error(`Found valid message from "${mostRecentValidSender}" (role: ${mostRecentValidRole}). Returning!`);
             break;
           }
           
           const elapsed = Date.now() - startTime;
           if (elapsed < maxWaitTime) {
-            console.error(`Most recent is still Automated Process. Polling again in ${pollInterval}ms... (${Math.floor(elapsed/1000)}s elapsed)`);
+            console.error(`No valid Chatbot/Agent message yet. Polling again in ${pollInterval}ms... (${Math.floor(elapsed/1000)}s elapsed)`);
             await new Promise(resolve => setTimeout(resolve, pollInterval));
           }
         }
         
-        if (!mostRecentIsNotAutomated) {
-          console.error('Timeout (25s). Most recent still Automated Process or no messages.');
+        if (!foundValidMessage) {
+          console.error('Timeout (25s). No valid Chatbot/Agent message found.');
         }
         
         // Get role info from most recent message (excluding System and Automated Process)
@@ -1116,8 +1125,8 @@ class MIAWMCPServer {
             sessionIdToUse: args.sessionId,
             conversationIdToUse: args.conversationId,
             instruction: isLiveAgent 
-              ? `LIVE AGENT (human representative) DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}".`
-              : `CHATBOT (AI assistant) - DO NOT call show_salesforce_chat. Display the message text verbatim as your response. The widget is ONLY for live human agents.`
+              ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
+              : `Role is "${senderRole}" (not Agent). Display this message. Keep polling until isLiveAgent=true.`
           }
         };
         break;

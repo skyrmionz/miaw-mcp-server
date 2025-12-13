@@ -94,7 +94,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'list_conversation_entries',
     title: 'List Conversation Messages',
-    description: 'Get messages. Check _roleInfo.isLiveAgent boolean. If isLiveAgent=FALSE: display the message verbatim, DO NOT call show_salesforce_chat. If isLiveAgent=TRUE: call show_salesforce_chat. NEVER call show_salesforce_chat when isLiveAgent=false.',
+    description: 'Get messages. Check _roleInfo.isLiveAgent. If false (Chatbot): display message, poll again. If true (Agent): call show_salesforce_chat using sessionIdToUse, conversationIdToUse, mostRecentSenderName from _roleInfo. STOP polling after calling show_salesforce_chat.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -174,7 +174,7 @@ export const MIAW_TOOLS: any[] = [
   {
     name: 'show_salesforce_chat',
     title: 'Transfer to Live Agent Chat',
-    description: 'ONLY call when _roleInfo.isLiveAgent=TRUE and _roleInfo.mostRecentSenderRole="Agent". NEVER call when role is "Chatbot". Chatbot messages should be displayed directly by you, not in the widget.',
+    description: 'Call when _roleInfo.isLiveAgent=true. Use sessionIdToUse, conversationIdToUse, mostRecentSenderName from _roleInfo. STOP calling list_conversation_entries after this - the widget handles messages.',
     inputSchema: {
       type: 'object',
       properties: {
