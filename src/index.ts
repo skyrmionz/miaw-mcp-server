@@ -1116,8 +1116,8 @@ class MIAWMCPServer {
             sessionIdToUse: args.sessionId,
             conversationIdToUse: args.conversationId,
             instruction: isLiveAgent 
-              ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
-              : `Role is "${senderRole}" (not Agent). Display this message. Keep polling until isLiveAgent=true.`
+              ? `LIVE AGENT (human representative) DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}".`
+              : `CHATBOT (AI assistant) - DO NOT call show_salesforce_chat. Display the message text verbatim as your response. The widget is ONLY for live human agents.`
           }
         };
         break;
