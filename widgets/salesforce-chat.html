@@ -438,7 +438,10 @@
     let isInitialized = false;
     let lastMessageTimestamp = 0;
     
-    // Initialize from tool output
+    // Initialize from tool output with retry
+    let initRetries = 0;
+    const maxInitRetries = 20; // Try for up to 10 seconds (20 x 500ms)
+    
     function initialize() {
       const toolOutput = window.openai?.toolOutput || {};
       
@@ -447,15 +450,26 @@
       serverUrl = toolOutput.serverUrl || 'https://miaw-mcp-server-6df009bc852c.herokuapp.com';
       agentName = toolOutput.agentName || 'Salesforce Agent';
       
-      console.log('Chat widget initialized:', { sessionId, conversationId, serverUrl, agentName });
+      console.log('Chat widget init attempt:', initRetries, { sessionId, conversationId, serverUrl, agentName });
+      
+      // If data not ready yet, retry
+      if ((!sessionId || !conversationId) && initRetries < maxInitRetries) {
+        initRetries++;
+        console.log('Data not ready, retrying in 500ms...', initRetries);
+        setTimeout(initialize, 500);
+        return;
+      }
       
       // Set agent name in header
       document.getElementById('agent-name').textContent = agentName;
       
       if (!sessionId || !conversationId) {
-        showError('Missing session or conversation ID');
+        console.error('Failed to get session data after retries');
+        showError('Failed to connect. Please try again.');
         return;
       }
+      
+      console.log('Chat widget initialized successfully!');
       
       // Start loading messages
       loadMessages();
@@ -481,10 +495,11 @@
     
     async function loadMessages() {
       try {
+        // skipPolling=true tells server to return immediately without waiting
         const response = await fetch(`${serverUrl}/api/list-conversation-entries`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, conversationId })
+          body: JSON.stringify({ sessionId, conversationId, skipPolling: true })
         });
         
         if (!response.ok) {
@@ -547,10 +562,11 @@
       if (!sessionId || !conversationId) return;
       
       try {
+        // skipPolling=true tells server to return immediately without waiting
         const response = await fetch(`${serverUrl}/api/list-conversation-entries`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, conversationId })
+          body: JSON.stringify({ sessionId, conversationId, skipPolling: true })
         });
         
         if (!response.ok) return;
@@ -603,7 +619,10 @@
       const senderDisplayName = msg.senderDisplayName || 'Agent';
       const senderRole = msg.sender?.role || msg.senderRole || 'Agent';
       const isUser = senderRole === 'EndUser';
-      const text = msg.messageContent?.staticContent?.text || '';
+      // Salesforce uses entryPayload.abstractMessage.staticContent.text
+      const text = msg.entryPayload?.abstractMessage?.staticContent?.text || 
+                   msg.messageContent?.staticContent?.text || 
+                   '';
       const timestamp = msg.transcriptedTimestamp || Date.now();
       
       if (!text.trim()) return;

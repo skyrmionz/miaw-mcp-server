@@ -1020,8 +1020,11 @@ class MIAWMCPServer {
           client.setAccessToken(session.accessToken);
         }
         
-        // Polling: Wait until we have a valid message from Chatbot or Agent (not System/Automated)
-        const maxWaitTime = 25000; // 25 seconds (Heroku has 30s timeout)
+        // skipPolling=true: Widget requests - return immediately without waiting
+        // skipPolling=false/undefined: ChatGPT requests - poll until valid message
+        const shouldPoll = !args.skipPolling;
+        
+        const maxWaitTime = shouldPoll ? 25000 : 0; // 25 seconds for ChatGPT, 0 for widget
         const pollInterval = 500; // 500ms (0.5 seconds) - faster response!
         const startTime = Date.now();
         let entriesResult: any;
@@ -1029,10 +1032,15 @@ class MIAWMCPServer {
         let mostRecentValidRole = '';
         let mostRecentValidSender = '';
         
-        console.error('Polling for valid Chatbot/Agent message...');
+        if (shouldPoll) {
+          console.error('Polling for valid Chatbot/Agent message...');
+        } else {
+          console.error('Widget request - returning immediately (skipPolling=true)');
+        }
         
         // Poll until most recent valid message is from Chatbot or Agent (not System)
-        while (Date.now() - startTime < maxWaitTime) {
+        // Or if skipPolling, just fetch once
+        while (Date.now() - startTime < maxWaitTime || !entriesResult) {
           const pollStart = Date.now();
           
           entriesResult = await client.listConversationEntries(
@@ -1069,6 +1077,12 @@ class MIAWMCPServer {
             break;
           }
           
+          // If skipPolling (widget request), break after first attempt
+          if (!shouldPoll) {
+            console.error('Widget request - breaking after first fetch');
+            break;
+          }
+          
           const elapsed = Date.now() - startTime;
           if (elapsed < maxWaitTime) {
             console.error(`No valid Chatbot/Agent message yet. Polling again in ${pollInterval}ms... (${Math.floor(elapsed/1000)}s elapsed)`);
@@ -1076,7 +1090,7 @@ class MIAWMCPServer {
           }
         }
         
-        if (!foundValidMessage) {
+        if (!foundValidMessage && shouldPoll) {
           console.error('Timeout (25s). No valid Chatbot/Agent message found.');
         }
         
