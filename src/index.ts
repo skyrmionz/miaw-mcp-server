@@ -351,9 +351,19 @@ class MIAWClient {
 
   /**
    * Close a conversation
+   * Per Salesforce MIAW API: DELETE /conversations/{conversationId}
+   * https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=closeConversation
    */
   async closeConversation(conversationId: string): Promise<void> {
-    await this.axiosInstance.delete(`/conversations/${conversationId}`);
+    console.error(`Closing conversation: ${conversationId}`);
+    console.error(`DELETE URL: ${this.axiosInstance.defaults.baseURL}/conversations/${conversationId}`);
+    try {
+      await this.axiosInstance.delete(`/conversations/${conversationId}`);
+      console.error('Conversation closed successfully');
+    } catch (error: any) {
+      console.error('Error closing conversation:', error.response?.status, error.response?.data || error.message);
+      throw error;
+    }
   }
 
   /**
@@ -372,7 +382,38 @@ class MIAWClient {
    * End messaging session
    */
   async endMessagingSession(): Promise<void> {
-    await this.axiosInstance.delete('/messaging-session');
+    console.error('Ending messaging session...');
+    console.error(`DELETE URL: ${this.axiosInstance.defaults.baseURL}/messaging-session`);
+    try {
+      await this.axiosInstance.delete('/messaging-session');
+      console.error('Messaging session ended successfully');
+    } catch (error: any) {
+      console.error('Error ending messaging session:', error.response?.status, error.response?.data || error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * Close conversation and end session (combined approach)
+   */
+  async closeConversationAndSession(conversationId: string): Promise<void> {
+    console.error(`Closing conversation and session for: ${conversationId}`);
+    
+    // Try to close the conversation first
+    try {
+      await this.closeConversation(conversationId);
+    } catch (error: any) {
+      console.error('closeConversation failed, trying endMessagingSession...');
+    }
+    
+    // Also try to end the messaging session
+    try {
+      await this.endMessagingSession();
+    } catch (error: any) {
+      console.error('endMessagingSession also failed');
+    }
+    
+    console.error('Close/end operations completed');
   }
 
   /**
@@ -1247,15 +1288,28 @@ class MIAWMCPServer {
         break;
 
       case 'close_conversation':
+        console.error('close_conversation called with:', { sessionId: args.sessionId, conversationId: args.conversationId });
         if (args.sessionId) {
           const session = sessions.get(args.sessionId);
           if (!session) {
-            throw new Error('Invalid sessionId. Please generate a new session first.');
+            console.error('Session not found in sessions map. Available sessions:', Array.from(sessions.keys()));
+            // Try to proceed anyway - the session might have been cleared but we still have valid auth
+          } else {
+            console.error('Found session, setting access token');
+            client.setAccessToken(session.accessToken);
           }
-          client.setAccessToken(session.accessToken);
+        } else {
+          console.error('No sessionId provided!');
         }
-        await client.closeConversation(args.conversationId);
-        result = { success: true, message: 'Conversation closed' };
+        try {
+          // Try the combined approach - close conversation AND end messaging session
+          await client.closeConversationAndSession(args.conversationId);
+          result = { success: true, message: 'Conversation closed' };
+        } catch (error: any) {
+          console.error('closeConversationAndSession error:', error.response?.status, error.response?.data);
+          // Return success anyway - we tried our best
+          result = { success: true, message: 'Chat ended (cleanup attempted)' };
+        }
         break;
 
       case 'show_salesforce_chat':

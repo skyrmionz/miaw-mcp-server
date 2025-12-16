@@ -490,13 +490,13 @@
       endButton.disabled = true;
       endButton.textContent = 'Ending...';
       
+      // Stop polling immediately
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      
       try {
-        // Stop polling
-        if (pollInterval) {
-          clearInterval(pollInterval);
-          pollInterval = null;
-        }
-        
         // Call close conversation API (per Salesforce MIAW API docs)
         const response = await fetch(`${serverUrl}/api/close-conversation`, {
           method: 'POST',
@@ -504,18 +504,17 @@
           body: JSON.stringify({ sessionId, conversationId })
         });
         
-        if (!response.ok) {
-          console.error('Failed to close conversation:', response.status);
-        }
-        
-        // Mark chat as ended
-        showChatEnded('You ended the chat. Thank you for contacting us.');
+        // Log the response for debugging
+        const responseText = await response.text();
+        console.log('Close conversation response:', response.status, responseText);
         
       } catch (error) {
         console.error('Error ending chat:', error);
-        endButton.disabled = false;
-        endButton.textContent = 'End Chat';
+        // Continue to show chat ended even if API call fails
       }
+      
+      // Always mark chat as ended (user clicked End Chat)
+      showChatEnded('You ended the chat. Thank you for contacting us.');
     }
     
     function showChatEnded(message) {
