@@ -505,6 +505,12 @@ class MIAWClient {
 const sessions = new Map<string, { accessToken: string; conversationId?: string }>();
 
 /**
+ * Track recently sent messages to prevent duplicates
+ * Key: conversationId:messageText, Value: timestamp
+ */
+const recentMessages = new Map<string, number>();
+
+/**
  * Generate a simple session ID
  */
 function generateSessionId(): string {
@@ -1059,6 +1065,28 @@ class MIAWMCPServer {
         console.error(`ConversationId: ${args.conversationId}`);
         console.error(`SessionId: ${args.sessionId}`);
         console.error(`Timestamp: ${Date.now()}`);
+        
+        // Prevent duplicate messages (same text within 10 seconds)
+        const msgKey = `${args.conversationId}:${args.text}`;
+        const now = Date.now();
+        const lastSentTime = recentMessages.get(msgKey);
+        if (lastSentTime && (now - lastSentTime) < 10000) {
+          console.error(`=== DUPLICATE MESSAGE BLOCKED (sent ${now - lastSentTime}ms ago) ===`);
+          result = { 
+            success: true, 
+            message: 'Message already sent',
+            _duplicate: true 
+          };
+          break;
+        }
+        recentMessages.set(msgKey, now);
+        
+        // Clean up old entries (older than 30 seconds)
+        for (const [key, time] of recentMessages.entries()) {
+          if (now - time > 30000) {
+            recentMessages.delete(key);
+          }
+        }
         
         if (args.sessionId) {
           const session = sessions.get(args.sessionId);
