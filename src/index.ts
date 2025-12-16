@@ -395,36 +395,78 @@ class MIAWClient {
 
   /**
    * Close conversation and end session
-   * Per Salesforce MIAW API docs:
-   * - endMessagingSession: DELETE /messaging-session (ends the session)
-   * - closeConversation: DELETE /conversations/{conversationId} (closes specific conversation)
-   * https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=endMessagingSession
-   * https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=closeConversation
+   * Tries multiple approaches for MIAW API
    */
   async closeConversationAndSession(conversationId: string): Promise<void> {
     console.error(`Closing conversation and session for: ${conversationId}`);
     
-    // First: End the messaging session (this is the main API for ending chat)
-    // Per docs: DELETE /messaging-session
+    // Method 1: Send a ParticipantChanged entry to indicate user left
+    // This is how MIAW tracks participant changes
     try {
-      console.error('Step 1: DELETE /messaging-session (endMessagingSession)...');
+      console.error('Method 1: POST ParticipantChanged entry (user left)...');
+      const response = await this.axiosInstance.post(`/conversations/${conversationId}/entries`, {
+        entryType: 'ParticipantChanged',
+        entryPayload: {
+          entries: [{
+            participantChangeType: 'Left',
+            displayName: 'Guest',
+            role: 'EndUser'
+          }]
+        }
+      });
+      console.error('ParticipantChanged entry succeeded!', response.status);
+      return;
+    } catch (error: any) {
+      console.error('ParticipantChanged entry failed:', error.response?.status, error.response?.data || error.message);
+    }
+    
+    // Method 2: Send a RoutingResult entry with EndConversation
+    try {
+      console.error('Method 2: POST RoutingResult entry (EndConversation)...');
+      const response = await this.axiosInstance.post(`/conversations/${conversationId}/entries`, {
+        entryType: 'RoutingResult',
+        entryPayload: {
+          routingType: 'EndConversation'
+        }
+      });
+      console.error('RoutingResult entry succeeded!', response.status);
+      return;
+    } catch (error: any) {
+      console.error('RoutingResult entry failed:', error.response?.status, error.response?.data || error.message);
+    }
+    
+    // Method 3: Send a system message indicating chat ended
+    try {
+      console.error('Method 3: Send system message (chat ended)...');
+      await this.sendMessage(conversationId, {
+        message: {
+          messageType: 'StaticContentMessage',
+          text: '[Chat ended by user]'
+        }
+      });
+      console.error('System message sent!');
+    } catch (error: any) {
+      console.error('System message failed:', error.response?.status, error.response?.data || error.message);
+    }
+    
+    // Method 4: Try DELETE endpoints anyway (might work in some configurations)
+    try {
+      console.error('Method 4: DELETE /messaging-session...');
       await this.endMessagingSession();
       console.error('endMessagingSession succeeded!');
     } catch (error: any) {
-      console.error('endMessagingSession failed:', error.response?.status, error.response?.data || error.message);
+      console.error('endMessagingSession failed:', error.response?.status);
     }
     
-    // Second: Also close the conversation
-    // Per docs: DELETE /conversations/{conversationId}
     try {
-      console.error('Step 2: DELETE /conversations/{id} (closeConversation)...');
+      console.error('Method 5: DELETE /conversations/{id}...');
       await this.closeConversation(conversationId);
       console.error('closeConversation succeeded!');
     } catch (error: any) {
-      console.error('closeConversation failed:', error.response?.status, error.response?.data || error.message);
+      console.error('closeConversation failed:', error.response?.status);
     }
     
-    console.error('Close operations completed');
+    console.error('All close methods attempted');
   }
 
   /**
