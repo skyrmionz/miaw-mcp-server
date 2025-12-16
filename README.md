@@ -81,9 +81,7 @@ Key: MIAW_SCRT_URL | Value: (Your Org's SCRT URL)
 
 ### Step 3: Connect to ChatGPT
 
-You have two options to deploy to ChatGPT:
-
-#### Option A: Deploy it as a Connector (Simpler, requires Developer Mode, needs approval for tool calls)
+#### Deploy to ChatGPT:
 
 1. Go to ChatGPT → Profile → Settings → Apps & Connectors → Advanced Settings → Developer Mode "On" → Back
 2. Click "Create" in the top right corner
@@ -96,111 +94,6 @@ You have two options to deploy to ChatGPT:
 9. Click the "Create" button
 10. Done! The Connector will be connected to your ChatGPT
 11. Test out the connection!
-
-#### Option B: Custom GPT (Customize a GPT you can share, executes tool calls without MCP and without approval)
-
-1. Go to ChatGPT → GPTs → Explore → Create
-2. When editing your GPT, go to the "Configure" tab. Add these **Instructions**:
-
-```
-You are a helpful shopping assistant for Target. When you encounter questions you cannot answer or when the user requests to speak with an agent, connect them to Salesforce support.
-
-CRITICAL MESSAGING RULES:
-
-When you receive messages from list_conversation_entries:
-1. Extract ONLY the message text from the most recent entry
-2. Reply to the user with EXACTLY that text - NOTHING ELSE
-3. Do NOT add "Selena replied:", "The agent said:", or ANY prefix
-4. Do NOT add follow-up questions, commentary, or instructions
-5. Present the message AS IF you are speaking those words directly
-
-WRONG: "Selena replied: 'Hello' - go ahead and respond!"
-RIGHT: "Hello"
-
-Exception: On agent transfer (ParticipantChanged event), announce "Transferring you to [name]" then show their greeting only.
-
-You ARE the messenger. Their words become YOUR words. No meta-commentary.
-```
-
-3. Scroll down to **Actions**:
-   - Click on "Create new action"
-   - Import from URL: `https://your-app-name.herokuapp.com/openapi-schema.json`
-   - Authentication: None
-   - Scroll down to Privacy Policy and put in: `https://your-app-name.herokuapp.com/privacy-policy`
-
-4. Click "Update" or "Create" in the upper right hand corner and test!
-
-## 📖 Available Tools
-
-The server provides 7 essential tools for a complete conversation flow:
-
-### 1. `generate_guest_access_token`
-Creates a session for the conversation.
-
-**Parameters:**
-- `appName` (string): Your app name (e.g., "Target Shopping Assistant")
-- `clientVersion` (string): Your app version (e.g., "1.0.0")
-
-**Returns:** `sessionId` - Use this in all subsequent calls
-
-### 2. `create_conversation`
-Starts a new conversation with Salesforce agents.
-
-**Parameters:**
-- `sessionId` (string): From `generate_guest_access_token`
-- `esDeveloperName` (string): Embedded Service developer name (auto-filled from env)
-- `routingAttributes` (object, optional): Pre-chat form data
-
-**Returns:** `conversationId` - The conversation ID for messaging
-
-### 3. `send_message`
-Sends a text message to the agent.
-
-**Parameters:**
-- `sessionId` (string): Your session ID
-- `conversationId` (string): From `create_conversation`
-- `text` (string): Message to send
-
-### 4. `list_conversation_entries`
-Retrieves messages from the conversation. **Server automatically polls** until an agent/bot message arrives (not just "Automated Process").
-
-**Parameters:**
-- `sessionId` (string): Your session ID
-- `conversationId` (string): From `create_conversation`
-- `skipPolling` (boolean, optional): Set to `true` for immediate response (used by widget)
-
-**Returns:** 
-- `entries`: Array of conversation entries (messages only - Chatbot/Agent)
-- `_roleInfo`: Contains `isLiveAgent`, `conversationEnded`, `endedByAgent` flags
-
-### 5. `get_conversation_routing_status`
-Check if an agent is assigned to the conversation.
-
-**Parameters:**
-- `sessionId` (string): Your session ID
-- `conversationId` (string): From `create_conversation`
-
-### 6. `close_conversation`
-End the conversation with the agent. Calls both `endMessagingSession` and `closeConversation` Salesforce APIs.
-
-**Parameters:**
-- `sessionId` (string): Your session ID
-- `conversationId` (string): From `create_conversation`
-
-### 7. `show_salesforce_chat` ✨ NEW
-Displays an embedded live chat widget when transferred to a human agent. **Only call when `_roleInfo.isLiveAgent=true`**.
-
-**Parameters:**
-- `sessionId` (string): From `_roleInfo.sessionIdToUse`
-- `conversationId` (string): From `_roleInfo.conversationIdToUse`
-- `agentName` (string): From `_roleInfo.mostRecentSenderName`
-
-**Features:**
-- Real-time message polling
-- Send/receive messages directly in the widget
-- Agent initials displayed in avatar
-- "End Chat" button to close the session
-- Automatically detects when agent ends the chat
 
 ## 🚀 How It Works
 
