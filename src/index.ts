@@ -1221,7 +1221,21 @@ class MIAWMCPServer {
         
         // Filter entries to ONLY include Chatbot/Agent messages - NO EndUser, NO System
         const allRawEntries = entriesResult.conversationEntries || entriesResult.entries || [];
-        const filteredEntries = allRawEntries.filter((e: any) => {
+        
+        // First, deduplicate by message ID (Salesforce sometimes returns duplicates)
+        const seenIds = new Set<string>();
+        const dedupedEntries = allRawEntries.filter((e: any) => {
+          const msgId = e.identifier || e.entryPayload?.id || e.transcriptedTimestamp;
+          if (seenIds.has(msgId)) {
+            return false; // Skip duplicate
+          }
+          seenIds.add(msgId);
+          return true;
+        });
+        
+        console.error(`Deduped entries: ${allRawEntries.length} -> ${dedupedEntries.length}`);
+        
+        const filteredEntries = dedupedEntries.filter((e: any) => {
           if (e.entryType !== 'Message') return false; // ONLY keep Message entries for ChatGPT
           const sender = e.senderDisplayName || '';
           const role = e.sender?.role || '';
@@ -1243,7 +1257,6 @@ class MIAWMCPServer {
           
           const shouldReject = isSystemRole || isEndUser || isAutomatedProcess || isAutomatedResponse || isSystemMessage || !isResponseRole;
           
-          console.error(`Filter: sender="${sender}", role="${role}", REJECT=${shouldReject}`);
           return !shouldReject;
         });
         
