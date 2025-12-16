@@ -1054,7 +1054,7 @@ class MIAWMCPServer {
           // Salesforce returns conversationEntries (not entries)
           const allEntries: any[] = entriesResult.conversationEntries || entriesResult.entries || [];
           
-          // Find most recent VALID message (strict filtering)
+          // Find most recent message from CHATBOT or AGENT (NOT EndUser - we need to wait for a response)
           const validMessages = allEntries
             .filter((e: any) => e.entryType === 'Message')
             .filter((e: any) => {
@@ -1072,10 +1072,10 @@ class MIAWMCPServer {
                                       messageText.includes('thanks for reaching out') ||
                                       messageText.includes('We will be with you shortly');
               
-              // ONLY accept specific valid roles
-              const isValidRole = role === 'Chatbot' || role === 'Agent' || role === 'EndUser';
+              // ONLY accept Chatbot or Agent - NOT EndUser (we wait for responses, not echo user messages)
+              const isResponseRole = role === 'Chatbot' || role === 'Agent';
               
-              return isValidRole && !isSystemRole && !isAutomatedProcess && !isAutomatedResponse && !isSystemMessage;
+              return isResponseRole && !isSystemRole && !isAutomatedProcess && !isAutomatedResponse && !isSystemMessage;
             })
             .sort((a: any, b: any) => (b.transcriptedTimestamp || 0) - (a.transcriptedTimestamp || 0));
           
@@ -1106,10 +1106,10 @@ class MIAWMCPServer {
           console.error('Timeout (25s). No valid Chatbot/Agent message found.');
         }
         
-        // Get role info from most recent VALID message (strict filtering)
+        // Get role info from most recent RESPONSE message (Chatbot/Agent only, not EndUser)
         // Salesforce returns conversationEntries (not entries)
         const allEntriesForRole: any[] = entriesResult.conversationEntries || entriesResult.entries || [];
-        const messages = allEntriesForRole
+        const responseMessages = allEntriesForRole
           .filter((e: any) => e.entryType === 'Message')
           .filter((e: any) => {
             const sender = e.senderDisplayName || '';
@@ -1117,7 +1117,7 @@ class MIAWMCPServer {
             const messageReason = e.entryPayload?.messageReason || '';
             const messageText = e.entryPayload?.abstractMessage?.staticContent?.text || '';
             
-            // Same strict filtering as above
+            // Same strict filtering as polling
             const isSystemRole = role === 'System' || role === '' || !role;
             const isAutomatedProcess = sender.includes('Automated Process');
             const isAutomatedResponse = messageReason === 'AutomatedResponse';
@@ -1125,17 +1125,18 @@ class MIAWMCPServer {
                                     messageText.includes('connect you to the next available') ||
                                     messageText.includes('thanks for reaching out') ||
                                     messageText.includes('We will be with you shortly');
-            const isValidRole = role === 'Chatbot' || role === 'Agent' || role === 'EndUser';
+            // Only Chatbot/Agent - not EndUser
+            const isResponseRole = role === 'Chatbot' || role === 'Agent';
             
-            return isValidRole && !isSystemRole && !isAutomatedProcess && !isAutomatedResponse && !isSystemMessage;
+            return isResponseRole && !isSystemRole && !isAutomatedProcess && !isAutomatedResponse && !isSystemMessage;
           })
           .sort((a: any, b: any) => (b.transcriptedTimestamp || 0) - (a.transcriptedTimestamp || 0));
         
-        const mostRecentMessage = messages[0];
-        const senderRole = mostRecentMessage?.sender?.role || mostRecentMessage?.senderRole || 'Unknown';
-        const senderDisplayName = mostRecentMessage?.senderDisplayName || 'Unknown';
+        const mostRecentResponse = responseMessages[0];
+        const senderRole = mostRecentResponse?.sender?.role || mostRecentResponse?.senderRole || 'Unknown';
+        const senderDisplayName = mostRecentResponse?.senderDisplayName || 'Unknown';
         
-        console.error(`Most recent non-System message from: ${senderDisplayName} (role: ${senderRole})`);
+        console.error(`Most recent Chatbot/Agent response from: ${senderDisplayName} (role: ${senderRole})`);
         
         // Add role info to help ChatGPT decide whether to show chat widget
         // isLiveAgent is TRUE only when role is "Agent" (not Chatbot, not System)
@@ -1181,7 +1182,9 @@ class MIAWMCPServer {
             conversationIdToUse: args.conversationId,
             instruction: isLiveAgent 
               ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
-              : `VERBATIM ONLY: Reply with EXACTLY the message text from entries[0].entryPayload.abstractMessage.staticContent.text - nothing else. No commentary, no "here is", no instructions.`
+              : senderRole === 'Unknown' 
+                ? `Waiting for Chatbot/Agent response. Keep polling list_conversation_entries.`
+                : `VERBATIM ONLY: Reply with EXACTLY the most recent Chatbot/Agent message text. No commentary.`
           }
         };
         break;
