@@ -7,7 +7,10 @@ Connect ChatGPT to your Salesforce Enhanced Chat (MIAW - Messaging for In-App an
 This MCP (Model Context Protocol) server enables ChatGPT to:
 - Start messaging sessions with Salesforce agents
 - Send and receive messages in real-time
-- Handle transfers between AI and human agents
+- Handle transfers between AI chatbots and human agents
+- **Display a live chat widget** when transferred to a human agent
+- **End chat sessions** properly on both sides
+- **Detect when agents end the chat** and notify users
 - Maintain conversation context throughout the handoff
 
 Perfect for when your ChatGPT assistant needs expert help or encounters questions beyond its scope.
@@ -129,7 +132,7 @@ You ARE the messenger. Their words become YOUR words. No meta-commentary.
 
 ## 📖 Available Tools
 
-The server provides 6 essential tools for a complete conversation flow:
+The server provides 7 essential tools for a complete conversation flow:
 
 ### 1. `generate_guest_access_token`
 Creates a session for the conversation.
@@ -164,8 +167,11 @@ Retrieves messages from the conversation. **Server automatically polls** until a
 **Parameters:**
 - `sessionId` (string): Your session ID
 - `conversationId` (string): From `create_conversation`
+- `skipPolling` (boolean, optional): Set to `true` for immediate response (used by widget)
 
-**Returns:** Array of conversation entries (messages, transfers, etc.)
+**Returns:** 
+- `entries`: Array of conversation entries (messages only - Chatbot/Agent)
+- `_roleInfo`: Contains `isLiveAgent`, `conversationEnded`, `endedByAgent` flags
 
 ### 5. `get_conversation_routing_status`
 Check if an agent is assigned to the conversation.
@@ -175,11 +181,26 @@ Check if an agent is assigned to the conversation.
 - `conversationId` (string): From `create_conversation`
 
 ### 6. `close_conversation`
-End the conversation with the agent.
+End the conversation with the agent. Calls both `endMessagingSession` and `closeConversation` Salesforce APIs.
 
 **Parameters:**
 - `sessionId` (string): Your session ID
 - `conversationId` (string): From `create_conversation`
+
+### 7. `show_salesforce_chat` ✨ NEW
+Displays an embedded live chat widget when transferred to a human agent. **Only call when `_roleInfo.isLiveAgent=true`**.
+
+**Parameters:**
+- `sessionId` (string): From `_roleInfo.sessionIdToUse`
+- `conversationId` (string): From `_roleInfo.conversationIdToUse`
+- `agentName` (string): From `_roleInfo.mostRecentSenderName`
+
+**Features:**
+- Real-time message polling
+- Send/receive messages directly in the widget
+- Agent initials displayed in avatar
+- "End Chat" button to close the session
+- Automatically detects when agent ends the chat
 
 ## 🚀 How It Works
 
@@ -197,18 +218,30 @@ sequenceDiagram
     Salesforce-->>MCP Server: conversationId
     ChatGPT->>MCP Server: list_conversation_entries(sessionId, conversationId)
     MCP Server->>Salesforce: Poll for messages (every 500ms, up to 25s)
-    Salesforce-->>MCP Server: Agent greeting
-    MCP Server-->>ChatGPT: "Hi! I'm Selena, how can I help?"
-    ChatGPT->>User: "Hi! I'm Selena, how can I help?"
-    User->>ChatGPT: "My order hasn't arrived"
+    Salesforce-->>MCP Server: Chatbot greeting
+    MCP Server-->>ChatGPT: "Hi! How can I help?" + _roleInfo.isLiveAgent=false
+    ChatGPT->>User: "Hi! How can I help?"
+    User->>ChatGPT: "Connect me to a live agent"
     ChatGPT->>MCP Server: send_message(sessionId, conversationId, text)
-    MCP Server->>Salesforce: Send message
+    MCP Server->>Salesforce: Send message + Route to agent
     ChatGPT->>MCP Server: list_conversation_entries(sessionId, conversationId)
     MCP Server->>Salesforce: Poll for agent response
-    Salesforce-->>MCP Server: Agent response
-    MCP Server-->>ChatGPT: "Let me look that up for you..."
-    ChatGPT->>User: "Let me look that up for you..."
+    Salesforce-->>MCP Server: Live agent greeting + _roleInfo.isLiveAgent=true
+    MCP Server-->>ChatGPT: Agent name + isLiveAgent=true
+    ChatGPT->>MCP Server: show_salesforce_chat(sessionId, conversationId, agentName)
+    MCP Server-->>ChatGPT: Live Chat Widget displayed
+    Note over User,ChatGPT: User now chats directly in widget
 ```
+
+### Live Agent Widget
+
+When a human agent joins the conversation, ChatGPT automatically displays an embedded chat widget:
+
+- **Real-time messaging** - Messages appear instantly
+- **Agent info** - Shows agent name and initials
+- **End Chat button** - User can end the session
+- **Auto-detection** - Knows when agent ends the chat
+- **Styled interface** - Professional chat UI that matches ChatGPT
 
 ### Server-Side Polling
 
@@ -321,6 +354,35 @@ Look for "Polling for non-Automated-Process message..." logs.
 1. Ensure agents are online in Salesforce
 2. Check agent capacity settings
 3. Verify routing configuration in Salesforce
+
+### End Chat button not working / 404 errors
+
+**Cause:** Incorrect API endpoint paths.
+
+**Solution:** The server now uses the correct Salesforce MIAW API endpoints:
+- `DELETE /conversation/{id}/session?esDeveloperName={name}` - Ends messaging session
+- `DELETE /conversation/{id}?esDeveloperName={name}` - Closes conversation
+
+Make sure your `MIAW_ES_DEVELOPER_NAME` environment variable is set correctly.
+
+### Agent ends chat but widget doesn't update
+
+**Cause:** Widget not detecting the "agent has ended the chat" message.
+
+**Solution:** The server now detects messages from "Automated Process" containing:
+- "agent has ended the chat"
+- "chat has ended"
+- "conversation has ended"
+
+The widget will automatically show "The agent has ended this chat session" and disable input.
+
+### Live chat widget not appearing
+
+**Cause:** `show_salesforce_chat` called too early or `isLiveAgent` not detected.
+
+**Solution:** 
+1. Check that `_roleInfo.isLiveAgent` is `true` before calling `show_salesforce_chat`
+2. Only call when `mostRecentSenderRole` is "Agent" (not "Chatbot")
 
 ## 📚 Resources
 
