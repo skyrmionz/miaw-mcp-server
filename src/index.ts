@@ -394,56 +394,37 @@ class MIAWClient {
   }
 
   /**
-   * Close conversation and end session (combined approach)
-   * Tries multiple methods as Salesforce MIAW API can vary
+   * Close conversation and end session
+   * Per Salesforce MIAW API docs:
+   * - endMessagingSession: DELETE /messaging-session (ends the session)
+   * - closeConversation: DELETE /conversations/{conversationId} (closes specific conversation)
+   * https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=endMessagingSession
+   * https://developer.salesforce.com/docs/service/messaging-api/references/miaw-api-reference?meta=closeConversation
    */
   async closeConversationAndSession(conversationId: string): Promise<void> {
     console.error(`Closing conversation and session for: ${conversationId}`);
     
-    // Method 1: Try sending a close conversation entry
+    // First: End the messaging session (this is the main API for ending chat)
+    // Per docs: DELETE /messaging-session
     try {
-      console.error('Method 1: Sending ConversationClose entry...');
-      await this.axiosInstance.post(`/conversations/${conversationId}/entries`, {
-        entryType: 'ConversationClose',
-        entryPayload: {
-          closeReason: 'UserEnded'
-        }
-      });
-      console.error('ConversationClose entry sent successfully');
-      return;
-    } catch (error: any) {
-      console.error('ConversationClose entry failed:', error.response?.status, error.response?.data || error.message);
-    }
-    
-    // Method 2: Try DELETE on conversations endpoint
-    try {
-      console.error('Method 2: DELETE /conversations/{id}...');
-      await this.closeConversation(conversationId);
-      return;
-    } catch (error: any) {
-      console.error('DELETE /conversations failed');
-    }
-    
-    // Method 3: Try DELETE on messaging-session
-    try {
-      console.error('Method 3: DELETE /messaging-session...');
+      console.error('Step 1: DELETE /messaging-session (endMessagingSession)...');
       await this.endMessagingSession();
-      return;
+      console.error('endMessagingSession succeeded!');
     } catch (error: any) {
-      console.error('DELETE /messaging-session failed');
+      console.error('endMessagingSession failed:', error.response?.status, error.response?.data || error.message);
     }
     
-    // Method 4: Try POST to close conversation (some APIs use POST)
+    // Second: Also close the conversation
+    // Per docs: DELETE /conversations/{conversationId}
     try {
-      console.error('Method 4: POST /conversations/{id}/close...');
-      await this.axiosInstance.post(`/conversations/${conversationId}/close`);
-      console.error('POST /close successful');
-      return;
+      console.error('Step 2: DELETE /conversations/{id} (closeConversation)...');
+      await this.closeConversation(conversationId);
+      console.error('closeConversation succeeded!');
     } catch (error: any) {
-      console.error('POST /close failed:', error.response?.status);
+      console.error('closeConversation failed:', error.response?.status, error.response?.data || error.message);
     }
     
-    console.error('All close methods attempted');
+    console.error('Close operations completed');
   }
 
   /**
