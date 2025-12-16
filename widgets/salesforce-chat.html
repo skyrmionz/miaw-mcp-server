@@ -481,8 +481,10 @@
       isInitialized = true;
     }
     
+    let chatEnded = false;
+    
     async function endChat() {
-      if (!sessionId) return;
+      if (!conversationId || chatEnded) return;
       
       const endButton = document.getElementById('end-chat-button');
       endButton.disabled = true;
@@ -495,39 +497,58 @@
           pollInterval = null;
         }
         
-        // Call end session API
-        const response = await fetch(`${serverUrl}/api/end-session`, {
+        // Call close conversation API (per Salesforce MIAW API docs)
+        const response = await fetch(`${serverUrl}/api/close-conversation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId })
+          body: JSON.stringify({ sessionId, conversationId })
         });
         
-        // Update UI
-        document.getElementById('status-indicator').style.background = '#999';
-        document.getElementById('status-text').textContent = 'Chat ended';
-        document.getElementById('message-input').disabled = true;
-        document.getElementById('send-button').disabled = true;
-        endButton.textContent = 'Ended';
+        if (!response.ok) {
+          console.error('Failed to close conversation:', response.status);
+        }
         
-        // Add system message
-        const container = document.getElementById('messages-container');
-        const msgEl = document.createElement('div');
-        msgEl.className = 'message agent';
-        msgEl.innerHTML = `
-          <div class="message-content" style="max-width: 100%; text-align: center;">
-            <div class="message-bubble" style="background: #f0f0f0; color: #666;">
-              Chat session ended. Thank you for contacting us.
-            </div>
-          </div>
-        `;
-        container.appendChild(msgEl);
-        container.scrollTop = container.scrollHeight;
+        // Mark chat as ended
+        showChatEnded('You ended the chat. Thank you for contacting us.');
         
       } catch (error) {
         console.error('Error ending chat:', error);
         endButton.disabled = false;
         endButton.textContent = 'End Chat';
       }
+    }
+    
+    function showChatEnded(message) {
+      chatEnded = true;
+      
+      // Stop polling
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+      
+      // Update UI
+      document.getElementById('status-indicator').style.background = '#999';
+      document.getElementById('status-indicator').style.animation = 'none';
+      document.getElementById('status-text').textContent = 'Chat ended';
+      document.getElementById('message-input').disabled = true;
+      document.getElementById('send-button').disabled = true;
+      document.getElementById('end-chat-button').textContent = 'Ended';
+      document.getElementById('end-chat-button').disabled = true;
+      
+      // Add system message
+      const container = document.getElementById('messages-container');
+      const msgEl = document.createElement('div');
+      msgEl.className = 'message agent';
+      msgEl.innerHTML = `
+        <div class="message-content" style="max-width: 100%; text-align: center;">
+          <div class="message-bubble" style="background: #f0f0f0; color: #666;">
+            ${escapeHtml(message)}
+          </div>
+        </div>
+      `;
+      container.appendChild(msgEl);
+      container.scrollTop = container.scrollHeight;
     }
     
     async function loadMessages() {
@@ -596,7 +617,7 @@
     }
     
     async function pollForMessages() {
-      if (!sessionId || !conversationId) return;
+      if (!sessionId || !conversationId || chatEnded) return;
       
       try {
         // skipPolling=true tells server to return immediately without waiting
@@ -606,10 +627,36 @@
           body: JSON.stringify({ sessionId, conversationId, skipPolling: true })
         });
         
-        if (!response.ok) return;
+        if (!response.ok) {
+          // 404 or other error might mean conversation was closed
+          if (response.status === 404 || response.status === 410) {
+            showChatEnded('The chat session has ended.');
+          }
+          return;
+        }
         
         const data = await response.json();
         const entries = data.entries || [];
+        const rawEntries = data._rawEntries || entries;
+        
+        // Check for conversation end events (per Salesforce MIAW API)
+        const endEvents = rawEntries.filter(e => 
+          e.entryType === 'ConversationClose' || 
+          e.entryType === 'RoutingResult' && e.entryPayload?.routingType === 'EndConversation' ||
+          e.entryType === 'ParticipantChanged' && e.entryPayload?.participantChangeType === 'Left'
+        );
+        
+        if (endEvents.length > 0) {
+          console.log('Conversation ended by agent or system:', endEvents);
+          showChatEnded('The agent has ended this chat session. Thank you for contacting us.');
+          return;
+        }
+        
+        // Check _roleInfo for conversation status
+        if (data._roleInfo?.conversationEnded) {
+          showChatEnded('The chat session has ended.');
+          return;
+        }
         
         // Filter and sort messages
         const messages = entries

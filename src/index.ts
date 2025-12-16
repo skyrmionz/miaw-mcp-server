@@ -1151,8 +1151,8 @@ class MIAWMCPServer {
         const isLiveAgent = senderRole === 'Agent';
         
         // Filter entries to ONLY include Chatbot/Agent messages - NO EndUser, NO System
-        const rawEntries = entriesResult.conversationEntries || entriesResult.entries || [];
-        const filteredEntries = rawEntries.filter((e: any) => {
+        const allRawEntries = entriesResult.conversationEntries || entriesResult.entries || [];
+        const filteredEntries = allRawEntries.filter((e: any) => {
           if (e.entryType !== 'Message') return false; // ONLY keep Message entries for ChatGPT
           const sender = e.senderDisplayName || '';
           const role = e.sender?.role || '';
@@ -1178,22 +1178,38 @@ class MIAWMCPServer {
           return !shouldReject;
         });
         
-        // Return ONLY filtered entries - remove raw conversationEntries to prevent ChatGPT reading them
+        // Check for conversation close events
+        const closeEvents = allRawEntries.filter((e: any) => 
+          e.entryType === 'ConversationClose' || 
+          (e.entryType === 'RoutingResult' && e.entryPayload?.routingType === 'EndConversation') ||
+          (e.entryType === 'ParticipantChanged' && e.entryPayload?.participantChangeType === 'Left')
+        );
+        const conversationEnded = closeEvents.length > 0;
+        
+        if (conversationEnded) {
+          console.error('Conversation has been closed');
+        }
+        
+        // Return filtered entries for ChatGPT, but include _rawEntries for widget
         result = {
-          entries: filteredEntries, // Return ONLY filtered messages
+          entries: filteredEntries, // Return ONLY filtered messages for ChatGPT
+          _rawEntries: allRawEntries, // Include raw entries for widget to detect close events
           continuationToken: entriesResult.continuationToken,
           _roleInfo: {
             mostRecentSenderRole: senderRole,
             mostRecentSenderName: senderDisplayName,
             isLiveAgent: isLiveAgent,
+            conversationEnded: conversationEnded,
             // Include sessionId/conversationId so ChatGPT can pass them to show_salesforce_chat
             sessionIdToUse: args.sessionId,
             conversationIdToUse: args.conversationId,
-            instruction: isLiveAgent 
-              ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
-              : !foundValidMessage || senderRole === 'Unknown' 
-                ? `Still waiting for Chatbot/Agent response. Call list_conversation_entries again to poll.`
-                : `VERBATIM ONLY: Reply with EXACTLY the most recent Chatbot/Agent message text. No commentary.`
+            instruction: conversationEnded
+              ? `The conversation has ended.`
+              : isLiveAgent 
+                ? `LIVE AGENT DETECTED! Call show_salesforce_chat NOW with: sessionId="${args.sessionId}", conversationId="${args.conversationId}", agentName="${senderDisplayName}". DO NOT display messages yourself - the chat widget will show them.`
+                : !foundValidMessage || senderRole === 'Unknown' 
+                  ? `Still waiting for Chatbot/Agent response. Call list_conversation_entries again to poll.`
+                  : `VERBATIM ONLY: Reply with EXACTLY the most recent Chatbot/Agent message text. No commentary.`
           }
         };
         break;
