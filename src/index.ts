@@ -395,25 +395,55 @@ class MIAWClient {
 
   /**
    * Close conversation and end session (combined approach)
+   * Tries multiple methods as Salesforce MIAW API can vary
    */
   async closeConversationAndSession(conversationId: string): Promise<void> {
     console.error(`Closing conversation and session for: ${conversationId}`);
     
-    // Try to close the conversation first
+    // Method 1: Try sending a close conversation entry
     try {
+      console.error('Method 1: Sending ConversationClose entry...');
+      await this.axiosInstance.post(`/conversations/${conversationId}/entries`, {
+        entryType: 'ConversationClose',
+        entryPayload: {
+          closeReason: 'UserEnded'
+        }
+      });
+      console.error('ConversationClose entry sent successfully');
+      return;
+    } catch (error: any) {
+      console.error('ConversationClose entry failed:', error.response?.status, error.response?.data || error.message);
+    }
+    
+    // Method 2: Try DELETE on conversations endpoint
+    try {
+      console.error('Method 2: DELETE /conversations/{id}...');
       await this.closeConversation(conversationId);
+      return;
     } catch (error: any) {
-      console.error('closeConversation failed, trying endMessagingSession...');
+      console.error('DELETE /conversations failed');
     }
     
-    // Also try to end the messaging session
+    // Method 3: Try DELETE on messaging-session
     try {
+      console.error('Method 3: DELETE /messaging-session...');
       await this.endMessagingSession();
+      return;
     } catch (error: any) {
-      console.error('endMessagingSession also failed');
+      console.error('DELETE /messaging-session failed');
     }
     
-    console.error('Close/end operations completed');
+    // Method 4: Try POST to close conversation (some APIs use POST)
+    try {
+      console.error('Method 4: POST /conversations/{id}/close...');
+      await this.axiosInstance.post(`/conversations/${conversationId}/close`);
+      console.error('POST /close successful');
+      return;
+    } catch (error: any) {
+      console.error('POST /close failed:', error.response?.status);
+    }
+    
+    console.error('All close methods attempted');
   }
 
   /**
